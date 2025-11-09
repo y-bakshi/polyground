@@ -6,10 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import httpx
+import logging
 
 from database import get_db
 from models import User, PinnedMarket, MarketHistory, Alert
+
+logger = logging.getLogger(__name__)
 from schemas import (
     PinRequest,
     UnpinRequest,
@@ -27,6 +31,29 @@ from services.polymarket import get_polymarket_service
 router = APIRouter(prefix="/api", tags=["api"])
 
 
+# ========== DEPENDENCIES ==========
+
+def get_user(user_id: int, db: Session) -> User:
+    """
+    Helper function to get user by ID, raises 404 if not found.
+    Reusable across endpoints to eliminate duplicate code.
+    
+    Args:
+        user_id: The user ID to look up
+        db: Database session
+        
+    Returns:
+        User object if found
+        
+    Raises:
+        HTTPException: 404 if user not found
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
 # ========== PIN ENDPOINTS ==========
 
 @router.post("/pin", response_model=StatusResponse)
@@ -37,9 +64,7 @@ async def pin_market(req: PinRequest, db: Session = Depends(get_db)):
     Backend resolves all formats automatically.
     """
     # Check if user exists
-    user = db.query(User).filter(User.id == req.userId).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = get_user(req.userId, db)
 
     # Resolve the input to market/event details
     polymarket = get_polymarket_service()
@@ -68,23 +93,27 @@ async def pin_market(req: PinRequest, db: Session = Depends(get_db)):
         )
 
     # Create new pin
-    new_pin = PinnedMarket(
-        user_id=req.userId,
-        market_id=market_id,
-        is_event=is_event,
-        event_id=event_id,
-        event_title=event_title,
-    )
+    try:
+        new_pin = PinnedMarket(
+            user_id=req.userId,
+            market_id=market_id,
+            is_event=is_event,
+            event_id=event_id,
+            event_title=event_title,
+        )
 
-    db.add(new_pin)
-    db.commit()
-    db.refresh(new_pin)
+        db.add(new_pin)
+        db.commit()
+        db.refresh(new_pin)
 
-    pin_type = "event" if is_event else "market"
-    return StatusResponse(
-        status="ok",
-        message=f"Pinned {pin_type} successfully"
-    )
+        pin_type = "event" if is_event else "market"
+        return StatusResponse(
+            status="ok",
+            message=f"Pinned {pin_type} successfully"
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to pin market: {str(e)}")
 
 
 @router.delete("/pin", response_model=StatusResponse)
@@ -104,13 +133,16 @@ async def unpin_market(req: UnpinRequest, db: Session = Depends(get_db)):
     if not pin:
         raise HTTPException(status_code=404, detail="Pinned market not found")
 
-    db.delete(pin)
-    db.commit()
-
-    return StatusResponse(
-        status="ok",
-        message=f"Market {req.marketId} unpinned successfully"
-    )
+    try:
+        db.delete(pin)
+        db.commit()
+        return StatusResponse(
+            status="ok",
+            message=f"Market {req.marketId} unpinned successfully"
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to unpin market: {str(e)}")
 
 
 # ========== PINNED MARKETS ENDPOINT ==========
@@ -124,9 +156,7 @@ async def get_pinned_markets(
     Get all pinned markets for a user with their latest data.
     """
     # Check if user exists
-    user = db.query(User).filter(User.id == userId).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = get_user(userId, db)
 
     # Get all pinned markets for user
     pinned = (
@@ -147,7 +177,7 @@ async def get_pinned_markets(
         )
 
         # Get last 24 hours of history for sparkline and change calculation
-        since = datetime.utcnow() - timedelta(hours=24)
+        since = datetime.now(timezone.utc) - timedelta(hours=24)
         history_records = (
             db.query(MarketHistory)
             .filter(
@@ -216,7 +246,7 @@ async def get_market_detail(
     Returns the latest data point and time-series history.
     """
     # Get time window
-    since = datetime.utcnow() - timedelta(hours=hours)
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
 
     # Get latest snapshot
     latest = (
@@ -281,9 +311,7 @@ async def get_alerts(
     Returns alerts sorted by most recent first.
     """
     # Check if user exists
-    user = db.query(User).filter(User.id == userId).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = get_user(userId, db)
 
     # Build query
     query = db.query(Alert).filter(Alert.user_id == userId)
@@ -334,13 +362,16 @@ async def mark_alert_seen(alert_id: int, db: Session = Depends(get_db)):
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
 
-    alert.seen = True
-    db.commit()
-
-    return StatusResponse(
-        status="ok",
-        message=f"Alert {alert_id} marked as seen"
-    )
+    try:
+        alert.seen = True
+        db.commit()
+        return StatusResponse(
+            status="ok",
+            message=f"Alert {alert_id} marked as seen"
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to mark alert as seen: {str(e)}")
 
 
 # ========== EVENT ENDPOINT ==========
@@ -360,7 +391,6 @@ async def get_event_detail(event_id: str):
     # If not found and event_id doesn't look like a number, try as slug
     if not event_data and not event_id.isdigit():
         # Try to resolve slug to event
-        import httpx
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
@@ -370,8 +400,8 @@ async def get_event_detail(event_id: str):
                     data = response.json()
                     if isinstance(data, list) and len(data) > 0:
                         event_data = data[0]
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to resolve event slug {event_id}: {e}")
 
     if not event_data:
         raise HTTPException(status_code=404, detail="Event not found")

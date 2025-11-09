@@ -14,7 +14,7 @@ Usage:
 import argparse
 from database import init_db, drop_db, SessionLocal
 from models import User, PinnedMarket, MarketHistory, Alert
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 def seed_test_data():
@@ -48,7 +48,7 @@ def seed_test_data():
         print(f"✓ Created {len(pinned_markets)} pinned markets")
 
         # Create some market history data points
-        base_time = datetime.utcnow() - timedelta(hours=2)
+        base_time = datetime.now(timezone.utc) - timedelta(hours=2)
         history_entries = []
 
         for i in range(12):  # 12 data points over 2 hours (every 10 minutes)

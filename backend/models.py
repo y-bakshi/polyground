@@ -1,9 +1,14 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 Base = declarative_base()
+
+
+def utc_now():
+    """Get current UTC datetime (replacement for deprecated datetime.utcnow())"""
+    return datetime.now(timezone.utc)
 
 
 class User(Base):
@@ -12,7 +17,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     # Relationships
     pinned_markets = relationship("PinnedMarket", back_populates="user", cascade="all, delete-orphan")
@@ -26,7 +31,7 @@ class PinnedMarket(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     market_id = Column(String, nullable=False, index=True)  # Polymarket market ID
-    pinned_at = Column(DateTime, default=datetime.utcnow)
+    pinned_at = Column(DateTime, default=utc_now)
 
     # Event support
     is_event = Column(Boolean, default=False, nullable=False)  # True if this is a multi-outcome event
@@ -48,7 +53,7 @@ class MarketHistory(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     market_id = Column(String, nullable=False, index=True)
-    ts = Column(DateTime, default=datetime.utcnow, index=True)
+    ts = Column(DateTime, default=utc_now, index=True)
 
     # Market data
     implied_prob = Column(Float, nullable=False)  # Implied probability (0-100)
@@ -70,7 +75,7 @@ class Alert(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     market_id = Column(String, nullable=False, index=True)
-    ts = Column(DateTime, default=datetime.utcnow, index=True)
+    ts = Column(DateTime, default=utc_now, index=True)
 
     # Alert trigger data
     change_pct = Column(Float, nullable=False)  # Percentage change that triggered alert

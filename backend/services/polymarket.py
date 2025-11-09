@@ -4,7 +4,7 @@ Polymarket Service - Fetch market data from Polymarket APIs
 
 import httpx
 from typing import Optional, Dict, List, Any, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 import logging
 
@@ -281,7 +281,7 @@ class PolymarketService:
                 "end_date": market.get("endDate"),
                 "closed": market.get("closed", False),
                 "volume_24hr": market.get("volume24hrClob", 0),
-                "fetched_at": datetime.utcnow().isoformat(),
+                "fetched_at": datetime.now(timezone.utc).isoformat(),
             }
 
             # Try to get price data if token IDs are available

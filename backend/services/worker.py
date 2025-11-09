@@ -5,7 +5,7 @@ Polling Worker - Periodically fetch market data, detect changes, and create aler
 import asyncio
 import os
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 import logging
@@ -74,7 +74,7 @@ class MarketPollingWorker:
             # Store in market history
             history_entry = MarketHistory(
                 market_id=market_id,
-                ts=datetime.utcnow(),
+                ts=datetime.now(timezone.utc),
                 implied_prob=implied_prob,
                 price=price,
                 volume=volume,
@@ -114,7 +114,7 @@ class MarketPollingWorker:
         """
         try:
             # Get historical data from the window
-            window_start = datetime.utcnow() - timedelta(minutes=self.window_minutes)
+            window_start = datetime.now(timezone.utc) - timedelta(minutes=self.window_minutes)
 
             old_history = (
                 db.query(MarketHistory)
@@ -210,7 +210,7 @@ class MarketPollingWorker:
             alert = Alert(
                 user_id=user_id,
                 market_id=market_id,
-                ts=datetime.utcnow(),
+                ts=datetime.now(timezone.utc),
                 change_pct=change_pct,
                 threshold=self.alert_threshold,
                 market_title=market_title,

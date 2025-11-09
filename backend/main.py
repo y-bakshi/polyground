@@ -30,9 +30,11 @@ app = FastAPI(
 )
 
 # CORS middleware to allow frontend to communicate with backend
+# Get allowed origins from environment variable, default to localhost for development
+allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -48,7 +50,7 @@ background_tasks = set()
 async def startup_event():
     """Initialize database tables and start background worker"""
     init_db()
-    print("✓ Database initialized")
+    logger.info("✓ Database initialized")
 
     # Start the polling worker in the background
     enable_worker = os.getenv("ENABLE_WORKER", "true").lower() == "true"
@@ -62,9 +64,9 @@ async def startup_event():
         background_tasks.add(task)
         task.add_done_callback(background_tasks.discard)
 
-        print("✓ Market polling worker started")
+        logger.info("✓ Market polling worker started")
     else:
-        print("⊗ Worker disabled (ENABLE_WORKER=false)")
+        logger.info("⊗ Worker disabled (ENABLE_WORKER=false)")
 
 
 # Include API routes
@@ -79,6 +81,17 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs"
     }
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup resources on shutdown"""
+    logger.info("Shutting down application...")
+    # Close HTTP client in Polymarket service
+    from services.polymarket import get_polymarket_service
+    polymarket = get_polymarket_service()
+    await polymarket.close()
+    logger.info("Cleanup complete")
 
 
 @app.get("/health")
