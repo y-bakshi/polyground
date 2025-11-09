@@ -1,12 +1,25 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useMarketDetails } from '../hooks/useMarketDetails'
+import { useEventDetails } from '../hooks/useEventDetails'
 import { Sparkline } from '../components/charts/Sparkline'
 import { formatDateTime, formatPercent } from '../utils/format'
 import { InsightCard } from '../components/alerts/InsightCard'
+import { useEffect } from 'react'
 
 export const MarketDetailPage = () => {
   const { marketId } = useParams<{ marketId: string }>()
-  const { data: market, isLoading } = useMarketDetails(marketId)
+  const navigate = useNavigate()
+  const { data: market, isLoading: marketLoading, error: marketError } = useMarketDetails(marketId)
+  const { data: event, isLoading: eventLoading } = useEventDetails(marketId)
+
+  // If it's an event, redirect to event detail page
+  useEffect(() => {
+    if (event && !eventLoading) {
+      navigate(`/event/${marketId}`, { replace: true })
+    }
+  }, [event, eventLoading, marketId, navigate])
+
+  const isLoading = marketLoading || eventLoading
 
   if (!marketId) {
     return (

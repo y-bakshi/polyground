@@ -4,6 +4,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { OverviewPage } from './pages/OverviewPage'
 import { AlertsPage } from './pages/AlertsPage'
 import { MarketDetailPage } from './pages/MarketDetailPage'
+import { EventDetailPage } from './pages/EventDetailPage'
 import './App.css'
 
 const queryClient = new QueryClient({
@@ -24,6 +25,7 @@ function App() {
             <Route path="/" element={<OverviewPage />} />
             <Route path="/alerts" element={<AlertsPage />} />
             <Route path="/market/:marketId" element={<MarketDetailPage />} />
+            <Route path="/event/:eventId" element={<EventDetailPage />} />
           </Routes>
         </AppLayout>
       </BrowserRouter>
