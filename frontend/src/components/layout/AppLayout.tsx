@@ -1,6 +1,7 @@
 import { NavLink, Link } from 'react-router-dom'
 import type { PropsWithChildren } from 'react'
 import { useUnreadAlertCount } from '../../hooks/useAlerts'
+import logoSvg from '../../assets/polyground-mark.svg'
 
 const navItems = [
   { to: '/', label: 'Overview' },
@@ -14,11 +15,9 @@ export const AppLayout = ({ children }: PropsWithChildren) => {
     <div className="app-shell">
       <header className="app-header">
         <Link to="/" className="brand">
-          <span className="brand-mark" aria-hidden>
-            PM
-          </span>
+          <img src={logoSvg} alt="Polyground" className="brand-logo" />
           <div>
-            <strong>Polymarket Scout</strong>
+            <strong>Polyground</strong>
             <p>Pin, monitor, react faster.</p>
           </div>
         </Link>
