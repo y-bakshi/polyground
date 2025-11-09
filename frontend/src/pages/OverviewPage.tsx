@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAlerts } from '../hooks/useAlerts'
 import { usePinMarket, usePinnedMarkets, useUnpinMarket } from '../hooks/usePinnedMarkets'
 import { MetricCard } from '../components/common/MetricCard'
@@ -6,6 +7,7 @@ import { PinnedTable } from '../components/markets/PinnedTable'
 import { PinMarketPanel } from '../components/markets/PinMarketPanel'
 
 export const OverviewPage = () => {
+  const navigate = useNavigate()
   const { data: pinnedMarkets, isLoading, isFetching } = usePinnedMarkets()
   const { data: alerts } = useAlerts()
   const { mutateAsync: pinMarket, isPending: isPinning } = usePinMarket()
@@ -98,7 +100,7 @@ export const OverviewPage = () => {
 
   return (
     <section className="page">
-      <header className="page-head">
+      <header className="page-head page-head--centered">
         <div>
           <h1>Overview</h1>
           <p>Pin Polymarket trades, monitor probability shifts, and skim Claude insights.</p>
@@ -108,22 +110,14 @@ export const OverviewPage = () => {
         </span>
       </header>
 
-      <div className="metrics-grid">
-        <MetricCard label="Pinned" value={`${pinnedMarkets?.length ?? 0}`} caption="tracking now" />
-        <MetricCard
-          label="Avg implied"
-          value={`${stats.averageProbability.toFixed(1)}%`}
-          caption="across pins"
-          trend={stats.averageMove}
-        />
-        <MetricCard
-          label="Unread alerts"
-          value={`${alerts?.filter((alert) => !alert.seen).length ?? 0}`}
-          caption="Claude insights waiting"
-        />
-      </div>
+      <PinMarketPanel
+        isSubmitting={isPinning}
+        onPin={async (input) => {
+          await pinMarket(input)
+        }}
+      />
 
-      <div className="overview-grid">
+      <div className="pinned-layout">
         <PinnedTable
           markets={pinnedMarkets}
           isLoading={isLoading}
@@ -134,12 +128,21 @@ export const OverviewPage = () => {
           onSelectAll={handleSelectAll}
           areAllSelected={areAllSelected}
         />
-        <PinMarketPanel
-          isSubmitting={isPinning}
-          onPin={async (input) => {
-            await pinMarket(input)
-          }}
-        />
+        <div className="metrics-column">
+          <MetricCard label="Pinned" value={`${pinnedMarkets?.length ?? 0}`} caption="tracking now" />
+          <MetricCard
+            label="Avg implied"
+            value={`${stats.averageProbability.toFixed(1)}%`}
+            caption="across pins"
+            trend={stats.averageMove}
+          />
+          <MetricCard
+            label="Unread alerts"
+            value={`${alerts?.filter((alert) => !alert.seen).length ?? 0}`}
+            caption="Claude insights waiting"
+            onClick={() => navigate('/alerts')}
+          />
+        </div>
       </div>
     </section>
   )

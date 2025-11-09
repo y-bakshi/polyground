@@ -91,6 +91,15 @@
   gap: 1rem;
 }
 
+.page-head--centered {
+  flex-direction: column;
+  text-align: center;
+}
+
+.page-head--centered > span {
+  align-self: center;
+}
+
 .page-head h1 {
   margin: 0 0 0.4rem;
 }
@@ -123,10 +132,29 @@
 }
 
 .metric-card {
+  display: block;
   padding: 1.1rem;
   border-radius: 1rem;
   background: rgba(15, 23, 42, 0.65);
   border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.metric-card--action {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.metric-card--action:hover,
+.metric-card--action:focus-visible {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+  transform: translateY(-2px);
+}
+
+.metric-card--action:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 4px;
 }
 
 .metric-label {
@@ -159,10 +187,17 @@
   color: #34d399;
 }
 
-.overview-grid {
+.pinned-layout {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 2fr minmax(220px, 1fr);
   gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.metrics-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .card {
@@ -521,7 +556,7 @@
 }
 
 @media (max-width: 960px) {
-  .overview-grid,
+  .pinned-layout,
   .detail-grid {
     grid-template-columns: 1fr;
   }
