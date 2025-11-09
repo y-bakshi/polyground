@@ -73,14 +73,25 @@ export const EventDetailPage = () => {
             >
               <div className="event-market-header">
                 <h4>{market.group_item_title || market.question}</h4>
-                <span className={`status-badge ${market.active ? 'active' : 'inactive'}`}>
+                <span className={`status-badge ${market.closed ? 'closed' : market.active ? 'active' : 'inactive'}`}>
                   {market.closed ? 'Closed' : market.active ? 'Active' : 'Inactive'}
                 </span>
               </div>
               <p className="event-market-question">{market.question}</p>
-              {market.outcome_prices && (
-                <p className="muted">Price: {market.outcome_prices}</p>
-              )}
+              {market.outcome_prices && (() => {
+                try {
+                  const prices = JSON.parse(market.outcome_prices)
+                  const yesPrice = (parseFloat(prices[0]) * 100).toFixed(1)
+                  const noPrice = (parseFloat(prices[1]) * 100).toFixed(1)
+                  return (
+                    <p className="muted">
+                      Yes: {yesPrice}% · No: {noPrice}%
+                    </p>
+                  )
+                } catch {
+                  return <p className="muted">Price: {market.outcome_prices}</p>
+                }
+              })()}
             </Link>
           ))}
         </div>

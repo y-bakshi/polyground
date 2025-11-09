@@ -432,6 +432,11 @@
   color: #94a3b8;
 }
 
+.status-badge.closed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
 @media (max-width: 960px) {
   .overview-grid,
   .detail-grid {
