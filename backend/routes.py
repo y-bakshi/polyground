@@ -122,7 +122,7 @@ async def get_pinned_markets(
         .all()
     )
 
-    # For each pinned market, get the latest market data
+    # For each pinned market, get the latest market data and recent history
     items = []
     for pin in pinned:
         latest_history = (
@@ -131,6 +131,30 @@ async def get_pinned_markets(
             .order_by(desc(MarketHistory.ts))
             .first()
         )
+
+        # Get last 24 hours of history for sparkline and change calculation
+        since = datetime.utcnow() - timedelta(hours=24)
+        history_records = (
+            db.query(MarketHistory)
+            .filter(
+                MarketHistory.market_id == pin.market_id,
+                MarketHistory.ts >= since
+            )
+            .order_by(MarketHistory.ts)
+            .all()
+        )
+
+        # Convert to MarketSnapshot objects
+        history_snapshots = [
+            MarketSnapshot(
+                ts=h.ts,
+                implied_prob=h.implied_prob,
+                price=h.price,
+                volume=h.volume,
+                market_title=h.market_title
+            )
+            for h in history_records
+        ]
 
         item = PinnedMarketWithLatest(
             id=pin.id,
@@ -141,6 +165,7 @@ async def get_pinned_markets(
             latest_price=latest_history.price if latest_history else None,
             latest_volume=latest_history.volume if latest_history else None,
             market_title=latest_history.market_title if latest_history else None,
+            history=history_snapshots,
         )
         items.append(item)
 

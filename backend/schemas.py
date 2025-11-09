@@ -96,6 +96,7 @@ class PinnedMarketWithLatest(BaseModel):
     latest_price: Optional[float] = None
     latest_volume: Optional[float] = None
     market_title: Optional[str] = None
+    history: List[MarketSnapshot] = []  # Historical data for sparkline and change calculation
 
     class Config:
         from_attributes = True

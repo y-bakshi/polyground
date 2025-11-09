@@ -22,6 +22,7 @@ interface BackendPinnedMarket {
   latest_price: number | null
   latest_volume: number | null
   market_title: string | null
+  history: BackendMarketHistory[]
 }
 
 interface BackendAlert {
@@ -53,15 +54,25 @@ interface BackendMarketDetail {
 
 // Adapter functions to convert backend responses to frontend types
 function adaptPinnedMarket(backend: BackendPinnedMarket): PinnedMarket {
-  const sparkline: SparklinePoint[] = backend.latest_prob !== null
-    ? [{ ts: backend.pinned_at, value: backend.latest_prob }]
-    : []
+  // Convert history to sparkline format
+  const sparkline: SparklinePoint[] = backend.history.map(h => ({
+    ts: h.ts,
+    value: h.implied_prob,
+  }))
+
+  // Calculate change percentage from first to last data point
+  let changePct = 0
+  if (backend.history.length >= 2) {
+    const firstProb = backend.history[0].implied_prob
+    const lastProb = backend.history[backend.history.length - 1].implied_prob
+    changePct = lastProb - firstProb
+  }
 
   return {
     marketId: backend.market_id,
     title: backend.market_title || `Market ${backend.market_id}`,
     impliedProbability: backend.latest_prob || 0,
-    changePct: 0, // Will be calculated from history if available
+    changePct,
     volume24h: backend.latest_volume || undefined,
     updatedAt: backend.pinned_at,
     sparkline,
