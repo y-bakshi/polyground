@@ -8,14 +8,6 @@
   </head>
   <body>
     <div class="popup">
-      <header>
-        <div>
-          <p class="eyebrow">Polymarket Scout</p>
-          <h1>Pinned markets</h1>
-        </div>
-        <button id="open-dashboard" class="ghost">Open dashboard</button>
-      </header>
-
       <section class="pin-card">
         <header class="pin-card__head">
           <div>
@@ -37,28 +29,13 @@
           <button type="button" data-market-id="516710">US Recession 2025</button>
           <button type="button" data-market-id="516706">Fed Rate Hike 2025</button>
         </div>
+        <button id="open-dashboard" type="button" class="ghost ghost--full">Open dashboard</button>
         <p id="pin-status" class="pin-status"></p>
       </section>
 
-      <section>
-        <ul id="pinned-list" class="pinned-list"></ul>
-        <p id="pinned-empty" class="empty">No pinned markets yet.</p>
-      </section>
-
-      <section>
-        <div class="alerts-head">
-          <h2>Alerts</h2>
-          <span id="alerts-count" class="badge">0</span>
-        </div>
-        <ul id="alerts-list" class="alerts-list"></ul>
-        <p id="alerts-empty" class="empty">No alerts in the last cycle.</p>
-      </section>
-
-      <footer>
-        <button id="refresh" class="primary">Refresh</button>
+      <footer class="popup-footer">
+        <p class="status status--inline" id="status">Paste a market to start tracking ✨</p>
       </footer>
-
-      <p id="status" class="status"></p>
     </div>
     <script type="module" src="popup.js"></script>
   </body>
