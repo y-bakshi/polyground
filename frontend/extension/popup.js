@@ -1,4 +1,5 @@
 import { API_BASE_URL, DASHBOARD_BASE_URL, USER_ID } from './config.js'
+import { extractMarketId } from './polymarket.js'
 
 const pinnedListEl = document.getElementById('pinned-list')
 const pinnedEmptyEl = document.getElementById('pinned-empty')
@@ -12,6 +13,10 @@ const pinSubmit = document.getElementById('pin-submit')
 const pinStatusEl = document.getElementById('pin-status')
 const quickPickButtons = document.querySelectorAll('[data-market-id]')
 let isPinning = false
+const quickPicks = [
+  { id: '516710', label: 'US Recession 2025' },
+  { id: '623603', label: 'Gov Shutdown Nov 12-15' },
+]
 
 async function fetchJSON(path) {
   const response = await fetch(`${API_BASE_URL}${path}`)
@@ -125,16 +130,30 @@ async function pinMarket(marketId) {
 async function handlePinSubmit(event) {
   event.preventDefault()
   if (isPinning) return
-  const marketId = pinInput.value.trim()
-  if (!marketId) {
-    setPinStatus('Enter a market id to pin.', 'error')
+  const rawValue = pinInput.value.trim()
+  if (!rawValue) {
+    setPinStatus('Please enter a market ID or Polymarket URL', 'error')
     return
   }
+
+  setPinStatus('')
+  const { marketId, error } = extractMarketId(rawValue)
+
+  if (error) {
+    setPinStatus(error, 'error')
+    return
+  }
+
+  if (!marketId) {
+    setPinStatus('Could not determine the market you want to pin.', 'error')
+    return
+  }
+
   try {
     setPinLoading(true)
     await pinMarket(marketId)
     pinInput.value = ''
-    setPinStatus('Pinned! Watching for moves.', 'success')
+    setPinStatus("Pinned! We'll watch it for moves.", 'success')
     await loadData()
   } catch (error) {
     console.error('[Polymarket Scout] pin failed', error)
@@ -149,10 +168,16 @@ function initPinning() {
   if (!pinForm || !pinInput || !pinSubmit) return
   setPinStatus('')
   pinForm.addEventListener('submit', handlePinSubmit)
-  quickPickButtons.forEach((button) => {
+  quickPickButtons.forEach((button, index) => {
+    const pick = quickPicks[index]
+    if (pick) {
+      button.textContent = pick.label
+      button.dataset.marketId = pick.id
+    }
     button.addEventListener('click', () => {
       pinInput.value = button.dataset.marketId ?? ''
       pinInput.focus()
+      setPinStatus('')
     })
   })
 }
