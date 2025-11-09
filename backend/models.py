@@ -71,6 +71,9 @@ class Alert(Base):
     change_pct = Column(Float, nullable=False)  # Percentage change that triggered alert
     threshold = Column(Float, nullable=False)  # Threshold that was exceeded
 
+    # Market metadata
+    market_title = Column(String, nullable=True)  # Market title for display
+
     # Claude-generated insight
     insight_text = Column(Text, nullable=True)
 

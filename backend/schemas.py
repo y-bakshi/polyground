@@ -72,6 +72,7 @@ class AlertResponse(BaseModel):
     ts: datetime
     change_pct: float
     threshold: float
+    market_title: Optional[str] = None
     insight_text: Optional[str] = None
     seen: bool
 

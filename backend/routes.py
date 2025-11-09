@@ -257,6 +257,7 @@ async def get_alerts(
             ts=alert.ts,
             change_pct=alert.change_pct,
             threshold=alert.threshold,
+            market_title=alert.market_title,
             insight_text=alert.insight_text,
             seen=alert.seen
         )

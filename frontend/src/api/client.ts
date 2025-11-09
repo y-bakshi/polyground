@@ -31,6 +31,7 @@ interface BackendAlert {
   ts: string
   change_pct: number
   threshold: number
+  market_title: string | null
   insight_text: string
   seen: boolean
 }
@@ -71,7 +72,7 @@ function adaptAlert(backend: BackendAlert): AlertItem {
   return {
     id: String(backend.id),
     marketId: backend.market_id,
-    marketTitle: `Market ${backend.market_id}`,
+    marketTitle: backend.market_title || `Market ${backend.market_id}`,
     changePct: backend.change_pct,
     threshold: backend.threshold,
     insightText: backend.insight_text,
