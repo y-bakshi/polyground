@@ -164,3 +164,61 @@ def test_event_endpoint_returns_sub_markets(client, monkeypatch):
     assert payload["market_count"] == 2
     assert len(payload["markets"]) == 2
     assert payload["markets"][0]["id"] == "sub-1"
+
+
+def test_event_endpoint_with_slug(client, monkeypatch):
+    """Test event endpoint with MrBeast-style slug"""
+    class FakePolymarketService:
+        async def check_if_event(self, event_id: str):
+            # Simulate that slug-based lookup returns event data
+            if "mrbeast" in event_id.lower() or event_id == "of-views-of-next-mrbeast-video-on-day-1-764":
+                return {
+                    "id": "764",
+                    "slug": "of-views-of-next-mrbeast-video-on-day-1-764",
+                    "title": "# of views of next MrBeast video on day 1",
+                    "description": "Multi-outcome event for MrBeast video views",
+                    "endDate": "2025-12-31T00:00:00Z",
+                    "active": True,
+                    "closed": False,
+                    "volume24hr": 50000,
+                    "markets": [
+                        {
+                            "id": "market-1",
+                            "question": "Will it get over 50M views?",
+                            "outcomePrices": [0.65, 0.35],
+                            "active": True,
+                            "closed": False,
+                            "groupItemTitle": "Over 50M",
+                        },
+                        {
+                            "id": "market-2",
+                            "question": "Will it get 40-50M views?",
+                            "outcomePrices": [0.25, 0.75],
+                            "active": True,
+                            "closed": False,
+                            "groupItemTitle": "40-50M",
+                        },
+                        {
+                            "id": "market-3",
+                            "question": "Will it get under 40M views?",
+                            "outcomePrices": [0.10, 0.90],
+                            "active": True,
+                            "closed": False,
+                            "groupItemTitle": "Under 40M",
+                        },
+                    ],
+                }
+            return None
+
+    monkeypatch.setattr(routes, "get_polymarket_service", lambda: FakePolymarketService())
+
+    # Test with the full slug from the URL
+    response = client.get("/api/event/of-views-of-next-mrbeast-video-on-day-1-764")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["title"] == "# of views of next MrBeast video on day 1"
+    assert payload["market_count"] == 3
+    assert len(payload["markets"]) == 3
+    assert payload["markets"][0]["question"] == "Will it get over 50M views?"
+    assert payload["markets"][1]["question"] == "Will it get 40-50M views?"
