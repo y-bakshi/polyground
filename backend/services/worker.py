@@ -170,6 +170,56 @@ class MarketPollingWorker:
         except Exception as e:
             logger.error(f"Error checking alerts for {market_id}: {e}")
 
+    def calculate_long_term_trend(self, market_id: str, db: Session) -> str:
+        """
+        Analyze recent alert history to determine long-term trend.
+
+        Args:
+            market_id: Market to analyze
+            db: Database session
+
+        Returns:
+            String description of trend pattern
+        """
+        try:
+            # Get last 10 alerts for this market
+            recent_alerts = (
+                db.query(Alert)
+                .filter(Alert.market_id == market_id)
+                .order_by(desc(Alert.ts))
+                .limit(10)
+                .all()
+            )
+
+            if len(recent_alerts) < 3:
+                return "Insufficient history (< 3 alerts)"
+
+            # Analyze change_pct values
+            changes = [alert.change_pct for alert in recent_alerts]
+
+            # Count positive and negative changes
+            positive = sum(1 for c in changes if c > 0)
+            negative = sum(1 for c in changes if c < 0)
+
+            # Calculate volatility
+            volatility = max(changes) - min(changes)
+
+            # Determine trend
+            if positive >= len(changes) * 0.8:
+                return f"Consistently rising trend ({positive}/{len(changes)} bullish alerts)"
+            elif negative >= len(changes) * 0.8:
+                return f"Consistently declining trend ({negative}/{len(changes)} bearish alerts)"
+            elif volatility > 30:
+                return f"High volatility (range: {volatility:.1f}% over {len(changes)} alerts)"
+            elif volatility > 15:
+                return f"Moderate fluctuations (range: {volatility:.1f}% over {len(changes)} alerts)"
+            else:
+                return f"Stable with minor variations (range: {volatility:.1f}% over {len(changes)} alerts)"
+
+        except Exception as e:
+            logger.warning(f"Error calculating trend for {market_id}: {e}")
+            return "Trend analysis unavailable"
+
     async def create_alert(
         self,
         user_id: int,
@@ -197,13 +247,23 @@ class MarketPollingWorker:
             db: Database session
         """
         try:
-            # Generate insight using Claude
+            # Get user information for personalization
+            user = db.query(User).filter(User.id == user_id).first()
+            user_name = user.email.split('@')[0] if user else "Yash"  # Extract name from email
+
+            # Calculate long-term trend from alert history
+            long_term_trend = self.calculate_long_term_trend(market_id, db)
+
+            # Generate enhanced insight using Claude
             insight_text = self.insight_service.generate_insight_from_history(
                 market_title=market_title,
                 old_snapshot=old_snapshot,
                 new_snapshot=new_snapshot,
                 window_minutes=self.window_minutes,
-                time_to_resolution=None  # TODO: Calculate from market end_date
+                time_to_resolution=None,  # TODO: Calculate from market end_date
+                user_name=user_name,
+                signal_summary=None,  # Reserved for future external signal integration
+                long_term_trend=long_term_trend,
             )
 
             # Create alert
@@ -222,8 +282,8 @@ class MarketPollingWorker:
             db.commit()
 
             logger.info(
-                f"Created alert for user {user_id}: "
-                f"{market_title[:40]}... ({change_pct:+.1f}%)"
+                f"Created alert for {user_name}: "
+                f"{market_title[:40]}... ({change_pct:+.1f}%) | Trend: {long_term_trend[:30]}..."
             )
 
         except Exception as e:

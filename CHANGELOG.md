@@ -6,7 +6,138 @@ This document summarizes all modifications made during the codebase improvement 
 
 ---
 
-## 📋 Overview
+## 🤖 Claude Integration Enhancement (Latest)
+
+### Session: Claude Prompt Enhancement
+**Date**: 2025-11-09
+
+### Overview
+Enhanced the existing Claude API integration with richer context including user personalization, long-term trend analysis, and external signal support.
+
+### Changes Made
+
+#### 1. Enhanced Prompt Template (`backend/services/insight.py`)
+
+**Added Parameters:**
+- `user_name` - User personalization (default: "Yash")
+- `signal_summary` - External signal integration (reserved for future)
+- `long_term_trend` - Historical trend analysis from alert history
+
+**New Prompt Format:**
+```
+User: {user_name}
+Market: "{market_title}"
+Time window: last {window_minutes} minutes
+Implied probability: {old_prob}% → {new_prob}% (Δ {delta_pct}%)
+Volume change: {vol_delta}
+Time to resolution: {ttr}
+External signal (optional): {signal_summary}
+
+Long-term trend from history: {trend_description}
+
+Consider external factors and market context. In 3–5 sentences:
+explain plausible drivers, 2 risks to watch, and a neutral note (not financial advice).
+```
+
+**Impact**: Claude now provides more contextual, personalized insights by considering historical patterns.
+
+---
+
+#### 2. Long-Term Trend Analysis (`backend/services/worker.py`)
+
+**Added Method:** `calculate_long_term_trend(market_id, db)`
+
+**Functionality:**
+- Queries last 10 alerts for the market
+- Analyzes pattern: rising, declining, volatile, or stable
+- Calculates volatility range
+- Returns descriptive trend summary
+
+**Example Outputs:**
+- "Consistently rising trend (8/10 bullish alerts)"
+- "High volatility (range: 35.2% over 10 alerts)"
+- "Stable with minor variations (range: 5.3% over 10 alerts)"
+
+**Impact**: Alerts now include market behavior context beyond single data points.
+
+---
+
+#### 3. User Personalization (`backend/services/worker.py`)
+
+**Changes in `create_alert()` method:**
+- Fetches user information from database
+- Extracts user name from email (e.g., "test@example.com" → "test")
+- Passes to Claude for personalized insights
+- Enhanced logging with user name and trend
+
+**Impact**: Insights are now user-specific and logs are more informative.
+
+---
+
+#### 4. Updated Documentation (`backend/.env.example`)
+
+**Enhanced Claude API section:**
+```bash
+# Claude API for AI-Generated Insights
+# Get your API key from: https://console.anthropic.com/
+# Enhanced features: user personalization, long-term trend analysis, external signal integration
+# Claude analyzes market movements considering historical patterns and external context
+CLAUDE_API_KEY=your_claude_api_key_here
+```
+
+**Added:**
+- CORS_ORIGINS configuration documentation
+- Inline comments for all environment variables
+
+---
+
+### Files Modified
+
+1. **`backend/services/insight.py`**
+   - Enhanced `generate_insight()` method signature
+   - Updated prompt template with new fields
+   - Added backward compatibility (all new params optional)
+
+2. **`backend/services/worker.py`**
+   - Added `calculate_long_term_trend()` method
+   - Updated `create_alert()` to fetch user info
+   - Enhanced logging with trend and user context
+
+3. **`backend/.env.example`**
+   - Documented enhanced Claude features
+   - Added CORS_ORIGINS configuration
+   - Added inline comments
+
+---
+
+### Testing
+
+✅ **Syntax Check**: All Python files compile successfully
+✅ **Import Test**: All modules import without errors
+✅ **Backward Compatibility**: Existing alerts work without modification
+✅ **Graceful Degradation**: System works even if trend data unavailable
+
+---
+
+### Benefits
+
+1. **Richer Context**: Claude insights now consider historical behavior patterns
+2. **User Personalization**: Insights tailored to specific users
+3. **Better Debugging**: Enhanced logging with user and trend information
+4. **Future-Ready**: Infrastructure for external signal integration prepared
+5. **Backward Compatible**: No breaking changes to existing functionality
+
+---
+
+### Future Enhancements Ready
+
+- **External Signals**: `signal_summary` parameter ready for news API integration
+- **Time to Resolution**: TODO comment indicates where to calculate from market end_date
+- **Custom Trend Windows**: Can easily adjust from 10 alerts to any number
+
+---
+
+## 📋 Overview (Previous Session)
 
 This session focused on:
 1. **Code Quality Improvements** - Fixing critical security, reliability, and best practice issues
