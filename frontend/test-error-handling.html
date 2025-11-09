@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Error Handling Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #666;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Frontend Error Handling Test</h1>
+    <p>This page tests the improved error handling in the API client.</p>
+
+    <div class="test-section">
+        <h2>Test 1: Valid Request (Should Succeed)</h2>
+        <button onclick="testValidRequest()">Test Valid User (ID: 1)</button>
+        <div id="result1" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: 404 Error - User Not Found</h2>
+        <button onclick="test404Error()">Test Invalid User (ID: 99999)</button>
+        <div id="result2" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: 400 Error - Invalid Market</h2>
+        <button onclick="test400Error()">Test Invalid Market ID</button>
+        <div id="result2" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Network Error (Stop Backend First)</h2>
+        <button onclick="testNetworkError()">Test Network Error</button>
+        <div id="result4" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: JSON Error Parsing</h2>
+        <button onclick="testJSONError()">Test JSON Error Response</button>
+        <div id="result5" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        // Simulate the improved error handling
+        async function request(path, init) {
+            const response = await fetch(`${API_BASE}${path}`, {
+                headers: { 'Content-Type': 'application/json' },
+                ...init,
+            });
+
+            if (!response.ok) {
+                let errorMessage = 'Request failed';
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.detail || errorData.message || errorMessage;
+                } catch {
+                    try {
+                        const text = await response.text();
+                        errorMessage = text || errorMessage;
+                    } catch {
+                        errorMessage = `Request failed with status ${response.status}`;
+                    }
+                }
+                throw new Error(errorMessage);
+            }
+
+            return response.json();
+        }
+
+        function showResult(id, message, type = 'info') {
+            const div = document.getElementById(id);
+            div.style.display = 'block';
+            div.className = `result ${type}`;
+            div.textContent = message;
+        }
+
+        async function testValidRequest() {
+            try {
+                const data = await request(`/api/pinned?userId=1`);
+                showResult('result1', `✅ Success!\n\nResponse: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (e) {
+                showResult('result1', `❌ Error: ${e.message}`, 'error');
+            }
+        }
+
+        async function test404Error() {
+            try {
+                await request(`/api/pinned?userId=99999`);
+                showResult('result2', '❌ Should have failed!', 'error');
+            } catch (e) {
+                const isGood = e.message.includes('User not found') || e.message.includes('404');
+                showResult('result2', 
+                    `${isGood ? '✅' : '⚠️'} Error Handling Test\n\n` +
+                    `Error Message: "${e.message}"\n\n` +
+                    `${isGood ? '✅ Good: Error message is user-friendly' : '⚠️ Warning: Error message might need improvement'}`,
+                    isGood ? 'success' : 'error'
+                );
+            }
+        }
+
+        async function test400Error() {
+            try {
+                await request('/api/pin', {
+                    method: 'POST',
+                    body: JSON.stringify({ userId: 1, marketId: 'invalid-market-id-12345' })
+                });
+                showResult('result3', '❌ Should have failed!', 'error');
+            } catch (e) {
+                const isGood = e.message.includes('Could not resolve') || e.message.includes('400');
+                showResult('result3',
+                    `${isGood ? '✅' : '⚠️'} Error Handling Test\n\n` +
+                    `Error Message: "${e.message}"\n\n` +
+                    `${isGood ? '✅ Good: Error message explains the problem' : '⚠️ Warning: Error message could be clearer'}`,
+                    isGood ? 'success' : 'error'
+                );
+            }
+        }
+
+        async function testNetworkError() {
+            try {
+                await request('/api/pinned?userId=1');
+                showResult('result4', '⚠️ Backend is running (stop it to test network error)', 'info');
+            } catch (e) {
+                const isNetworkError = e.message.includes('Failed to fetch') || 
+                                     e.message.includes('NetworkError') ||
+                                     e.message.includes('network');
+                showResult('result4',
+                    `${isNetworkError ? '✅' : '⚠️'} Network Error Test\n\n` +
+                    `Error Message: "${e.message}"\n\n` +
+                    `${isNetworkError ? '✅ Good: Network error is caught and handled' : '⚠️ Different error type'}`,
+                    isNetworkError ? 'success' : 'error'
+                );
+            }
+        }
+
+        async function testJSONError() {
+            try {
+                const response = await fetch(`${API_BASE}/api/pinned?userId=99999`);
+                if (!response.ok) {
+                    // Test JSON parsing
+                    try {
+                        const errorData = await response.json();
+                        showResult('result5',
+                            `✅ JSON Error Parsing Test\n\n` +
+                            `Status: ${response.status}\n` +
+                            `Error Object: ${JSON.stringify(errorData, null, 2)}\n\n` +
+                            `Extracted Message: "${errorData.detail || errorData.message || 'N/A'}"\n\n` +
+                            `✅ Good: JSON error is parsed correctly`,
+                            'success'
+                        );
+                    } catch (e) {
+                        showResult('result5', `⚠️ JSON parsing failed: ${e.message}`, 'error');
+                    }
+                }
+            } catch (e) {
+                showResult('result5', `Error: ${e.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
+

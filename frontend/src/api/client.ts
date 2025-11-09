@@ -116,8 +116,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   })
 
   if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || 'Request failed')
+    let errorMessage = 'Request failed'
+    try {
+      const errorData = await response.json()
+      errorMessage = errorData.detail || errorData.message || errorMessage
+    } catch {
+      // If JSON parsing fails, try to get text
+      try {
+        const text = await response.text()
+        errorMessage = text || errorMessage
+      } catch {
+        // If text parsing also fails, use default message
+        errorMessage = `Request failed with status ${response.status}`
+      }
+    }
+    throw new Error(errorMessage)
   }
 
   return response.json() as Promise<T>

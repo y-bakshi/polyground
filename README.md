@@ -59,9 +59,22 @@ A monorepo containing frontend and backend applications.
 asuHacks/
 ├── frontend/         # React app (Vite + React 19)
 ├── backend/          # FastAPI backend
-├── CLAUDE.md         # Guide for Claude Code
+├── docs/             # Documentation
+│   ├── installation.md
+│   ├── running.md
+│   ├── testing.md
+│   └── documentation.md
 └── README.md         # This file
 ```
+
+## Documentation
+
+For detailed documentation, see the `docs/` directory:
+
+- **[Installation Guide](docs/installation.md)** - Setup and installation instructions
+- **[Running Guide](docs/running.md)** - How to run the application
+- **[Testing Guide](docs/testing.md)** - Testing documentation
+- **[Complete Documentation](docs/documentation.md)** - API reference, architecture, and examples
 
 ## Available Commands
 
