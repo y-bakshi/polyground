@@ -36,14 +36,14 @@ export const EventDetailPage = () => {
 
   return (
     <section className="page">
+      <Link to="/" className="link">
+        ← Back to overview
+      </Link>
       <header className="page-head">
         <div>
           <h1>{event.title}</h1>
           {event.description && <p>{event.description}</p>}
         </div>
-        <Link to="/" className="link">
-          ← Back to overview
-        </Link>
       </header>
 
       <div className="detail-summary">
