@@ -31,3 +31,22 @@ export const usePinMarket = () => {
     },
   })
 }
+
+export const useUnpinMarket = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (marketId: string) =>
+      apiClient.unpinMarket({ userId: DEMO_USER_ID, marketId }),
+    onSuccess: (_, marketId) => {
+      if (isMockMode) {
+        queryClient.setQueryData<PinnedMarket[]>(pinnedKey, (current) => {
+          if (!current) return current
+          return current.filter((item) => item.marketId !== marketId)
+        })
+      } else {
+        queryClient.invalidateQueries({ queryKey: pinnedKey })
+      }
+    },
+  })
+}

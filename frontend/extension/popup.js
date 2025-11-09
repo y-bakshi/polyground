@@ -1,5 +1,4 @@
 import { API_BASE_URL, DASHBOARD_BASE_URL, USER_ID } from './config.js'
-import { extractMarketId } from './polymarket.js'
 
 const pinnedListEl = document.getElementById('pinned-list')
 const pinnedEmptyEl = document.getElementById('pinned-empty')
@@ -15,7 +14,7 @@ const quickPickButtons = document.querySelectorAll('[data-market-id]')
 let isPinning = false
 const quickPicks = [
   { id: '516710', label: 'US Recession 2025' },
-  { id: '623603', label: 'Gov Shutdown Nov 12-15' },
+  { id: '516706', label: 'Fed Rate Hike 2025' },
 ]
 
 async function fetchJSON(path) {
@@ -105,9 +104,6 @@ function setPinLoading(loading) {
   quickPickButtons.forEach((button) => {
     button.disabled = loading
   })
-  if (loading) {
-    setPinStatus('Pinning…')
-  }
 }
 
 async function pinMarket(marketId) {
@@ -136,22 +132,10 @@ async function handlePinSubmit(event) {
     return
   }
 
-  setPinStatus('')
-  const { marketId, error } = extractMarketId(rawValue)
-
-  if (error) {
-    setPinStatus(error, 'error')
-    return
-  }
-
-  if (!marketId) {
-    setPinStatus('Could not determine the market you want to pin.', 'error')
-    return
-  }
-
   try {
+    setPinStatus('Resolving...', 'info')
     setPinLoading(true)
-    await pinMarket(marketId)
+    await pinMarket(rawValue)
     pinInput.value = ''
     setPinStatus("Pinned! We'll watch it for moves.", 'success')
     await loadData()

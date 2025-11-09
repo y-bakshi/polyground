@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAlerts } from '../hooks/useAlerts'
-import { usePinMarket, usePinnedMarkets } from '../hooks/usePinnedMarkets'
+import { usePinMarket, usePinnedMarkets, useUnpinMarket } from '../hooks/usePinnedMarkets'
 import { MetricCard } from '../components/common/MetricCard'
 import { PinnedTable } from '../components/markets/PinnedTable'
 import { PinMarketPanel } from '../components/markets/PinMarketPanel'
@@ -9,6 +9,32 @@ export const OverviewPage = () => {
   const { data: pinnedMarkets, isLoading, isFetching } = usePinnedMarkets()
   const { data: alerts } = useAlerts()
   const { mutateAsync: pinMarket, isPending: isPinning } = usePinMarket()
+  const { mutateAsync: unpinMarket } = useUnpinMarket()
+  const [selectedMarketIds, setSelectedMarketIds] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  useEffect(() => {
+    if (!pinnedMarkets || pinnedMarkets.length === 0) {
+      setSelectedMarketIds(new Set())
+      return
+    }
+
+    setSelectedMarketIds((current) => {
+      const validIds = new Set(pinnedMarkets.map((market) => market.marketId))
+      let changed = false
+      const next = new Set<string>()
+
+      current.forEach((id) => {
+        if (validIds.has(id)) {
+          next.add(id)
+        } else {
+          changed = true
+        }
+      })
+
+      return changed ? next : current
+    })
+  }, [pinnedMarkets])
 
   const stats = useMemo(() => {
     if (!pinnedMarkets || pinnedMarkets.length === 0) {
@@ -26,6 +52,49 @@ export const OverviewPage = () => {
       averageMove: totalMove / pinnedMarkets.length,
     }
   }, [pinnedMarkets])
+
+  const allMarketIds = useMemo(
+    () => (pinnedMarkets ? pinnedMarkets.map((market) => market.marketId) : []),
+    [pinnedMarkets],
+  )
+
+  const areAllSelected = allMarketIds.length > 0 && allMarketIds.every((id) => selectedMarketIds.has(id))
+
+  const toggleSelection = (marketId: string) => {
+    setSelectedMarketIds((current) => {
+      const next = new Set(current)
+      if (next.has(marketId)) {
+        next.delete(marketId)
+      } else {
+        next.add(marketId)
+      }
+      return next
+    })
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedMarketIds.size === 0 || isDeleting) return
+    setIsDeleting(true)
+    try {
+      for (const marketId of selectedMarketIds) {
+        await unpinMarket(marketId)
+      }
+      setSelectedMarketIds(new Set())
+    } catch (error) {
+      console.error('Failed to delete selected markets', error)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (allMarketIds.length === 0) return
+    if (checked) {
+      setSelectedMarketIds(new Set(allMarketIds))
+    } else {
+      setSelectedMarketIds(new Set())
+    }
+  }
 
   return (
     <section className="page">
@@ -55,7 +124,16 @@ export const OverviewPage = () => {
       </div>
 
       <div className="overview-grid">
-        <PinnedTable markets={pinnedMarkets} isLoading={isLoading} />
+        <PinnedTable
+          markets={pinnedMarkets}
+          isLoading={isLoading}
+          selectedMarketIds={selectedMarketIds}
+          onToggleSelection={toggleSelection}
+          onDeleteSelected={handleDeleteSelected}
+          isDeleting={isDeleting}
+          onSelectAll={handleSelectAll}
+          areAllSelected={areAllSelected}
+        />
         <PinMarketPanel
           isSubmitting={isPinning}
           onPin={async (input) => {

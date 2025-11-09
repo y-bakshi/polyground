@@ -7,6 +7,7 @@ import type {
   PinMarketRequest,
   PinnedMarket,
   SparklinePoint,
+  UnpinMarketRequest,
 } from './types'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -197,6 +198,25 @@ export const apiClient = {
       return { status: 'mocked', pinned: mockStore.pinMarket(payload.marketId) }
     }
   },
+  unpinMarket: async (payload: UnpinMarketRequest): Promise<void> => {
+    if (shouldMock) {
+      mockStore.unpinMarket(payload.marketId)
+      return
+    }
+
+    try {
+      await request<{ status: string; message: string }>('/api/pin', {
+        method: 'DELETE',
+        body: JSON.stringify({
+          userId: Number(payload.userId),
+          marketId: payload.marketId,
+        }),
+      })
+    } catch (error) {
+      console.warn('Falling back to mock data for unpin market', error)
+      mockStore.unpinMarket(payload.marketId)
+    }
+  },
 
   getAlerts: async (userId: string): Promise<AlertItem[]> => {
     if (shouldMock) {
@@ -211,6 +231,24 @@ export const apiClient = {
     } catch (error) {
       console.warn('Falling back to mock data for alerts', error)
       return mockStore.getAlerts()
+    }
+  },
+  markAlertSeen: async (alertId: string): Promise<void> => {
+    if (shouldMock) {
+      mockStore.markAlertSeen(alertId)
+      return
+    }
+
+    try {
+      await request<{ status: string; message: string }>(
+        `/api/alerts/${Number(alertId)}/mark-seen`,
+        {
+          method: 'PATCH',
+        },
+      )
+    } catch (error) {
+      console.warn('Falling back to mock data for mark alert seen', error)
+      mockStore.markAlertSeen(alertId)
     }
   },
 
