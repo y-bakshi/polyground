@@ -27,6 +27,7 @@ from schemas import (
     StatusResponse,
 )
 from services.polymarket import get_polymarket_service
+from services.worker import get_worker
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -105,6 +106,61 @@ async def pin_market(req: PinRequest, db: Session = Depends(get_db)):
         db.add(new_pin)
         db.commit()
         db.refresh(new_pin)
+
+        # Generate initial alert for the newly pinned market
+        try:
+            worker = get_worker()
+
+            # Fetch current market snapshot
+            current_snapshot = await polymarket.get_market_snapshot(market_id)
+
+            if current_snapshot:
+                # Get the most recent historical data for comparison
+                latest_history = (
+                    db.query(MarketHistory)
+                    .filter(MarketHistory.market_id == market_id)
+                    .order_by(desc(MarketHistory.ts))
+                    .first()
+                )
+
+                # Create initial alert with current market state
+                current_prob = current_snapshot.get("implied_prob", 50.0)
+                market_title = current_snapshot.get("question", "Unknown Market")
+
+                # If we have historical data, show change from last known point
+                if latest_history:
+                    old_prob = latest_history.implied_prob
+                    change_pct = current_prob - old_prob
+                    old_snapshot = {
+                        "implied_prob": old_prob,
+                        "volume": latest_history.volume
+                    }
+                else:
+                    # For brand new markets with no history, show as 0% change
+                    old_prob = current_prob
+                    change_pct = 0.0
+                    old_snapshot = {
+                        "implied_prob": current_prob,
+                        "volume": current_snapshot.get("volume", 0)
+                    }
+
+                # Create the initial alert
+                await worker.create_alert(
+                    user_id=req.userId,
+                    market_id=market_id,
+                    market_title=market_title,
+                    old_prob=old_prob,
+                    new_prob=current_prob,
+                    change_pct=change_pct,
+                    old_snapshot=old_snapshot,
+                    new_snapshot=current_snapshot,
+                    db=db
+                )
+
+                logger.info(f"Created initial alert for user {req.userId} on market {market_id}")
+        except Exception as alert_error:
+            # Don't fail the pin operation if alert creation fails
+            logger.warning(f"Failed to create initial alert: {alert_error}")
 
         pin_type = "event" if is_event else "market"
         return StatusResponse(

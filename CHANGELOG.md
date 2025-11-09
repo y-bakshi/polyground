@@ -6,7 +6,134 @@ This document summarizes all modifications made during the codebase improvement 
 
 ---
 
-## 🤖 Claude Integration Enhancement (Latest)
+## 🔔 Dual Alert System (Latest)
+
+### Session: Alert System Enhancement
+**Date**: 2025-11-09
+
+### Overview
+Implemented a dual alert system that generates alerts at two key moments:
+1. **Initial alert when user pins a market** - Instant notification with market snapshot
+2. **Ongoing alerts for 3% changes** - Continuous monitoring with 3% threshold (reduced from 5%)
+
+### Changes Made
+
+#### 1. Updated Alert Threshold (`backend/.env`, `backend/.env.example`)
+
+**Changed threshold from 5% to 3%:**
+```bash
+ALERT_THRESHOLD_PCT=3.0        # Trigger alert on 3% probability change
+```
+
+**Impact**: More sensitive alerts that catch smaller market movements.
+
+---
+
+#### 2. Initial Alert Generation (`backend/routes.py`)
+
+**Added to `pin_market()` endpoint** (lines 110-163):
+
+**New functionality:**
+- Fetches current market snapshot when user pins a market
+- Retrieves latest historical data for comparison
+- Generates Claude insight for initial market state
+- Creates alert with 0% change for brand new pins
+- Gracefully handles errors without failing pin operation
+
+**Key code flow:**
+```python
+# After successful pin
+1. Get worker instance
+2. Fetch current market snapshot
+3. Get latest historical data (if exists)
+4. Calculate change from last known state
+5. Generate Claude insight with user personalization
+6. Create alert in database
+7. Log success
+```
+
+**Impact**: Users immediately receive a Claude-generated analysis when they pin a market.
+
+---
+
+#### 3. Enhanced Logging
+
+**Added log messages:**
+- `Created initial alert for user {user_id} on market {market_id}` (success)
+- `Failed to create initial alert: {error}` (warning, non-blocking)
+
+**Impact**: Better debugging and monitoring of alert generation.
+
+---
+
+### Files Modified
+
+1. **`backend/.env`**
+   - Changed `ALERT_THRESHOLD_PCT` from 5.0 to 3.0
+
+2. **`backend/.env.example`**
+   - Updated example threshold to 3.0
+   - Updated comment to reflect 3% threshold
+
+3. **`backend/routes.py`**
+   - Added import: `from services.worker import get_worker`
+   - Enhanced `pin_market()` endpoint with initial alert generation
+   - Added comprehensive error handling
+
+---
+
+### Testing Performed
+
+✅ **Initial Alert Creation**: Confirmed alert generated when pinning market
+✅ **Claude Integration**: Verified Claude API called successfully
+✅ **User Personalization**: Alert includes user name extracted from email
+✅ **Threshold Update**: Worker using 3% threshold for ongoing monitoring
+✅ **Error Handling**: Pin operation succeeds even if alert creation fails
+✅ **Database Storage**: Alerts properly saved with all metadata
+
+**Test Results:**
+```json
+{
+    "id": 2,
+    "user_id": 1,
+    "market_id": "625811",
+    "change_pct": 0.0,           // Initial alert
+    "threshold": 3.0,            // New 3% threshold
+    "market_title": "Will Gemini 3.0 be released by November 30?",
+    "insight_text": "Plausible Drivers: ...",  // Claude-generated
+    "seen": false
+}
+```
+
+---
+
+### Benefits
+
+1. **Immediate Feedback**: Users get instant analysis when adding markets
+2. **More Sensitive Alerts**: 3% threshold catches more market movements
+3. **Consistent UX**: Alert generation standardized across scenarios
+4. **Enhanced Insights**: Initial alerts include full Claude analysis with trends
+5. **Fail-Safe Design**: Pin operations never fail due to alert issues
+
+---
+
+### Alert System Behavior
+
+**Scenario 1: User Pins New Market**
+- ✅ Fetch current market data
+- ✅ Generate Claude insight
+- ✅ Create alert with 0% or small change
+- ✅ User sees alert immediately in UI
+
+**Scenario 2: Market Changes 3% or More**
+- ✅ Worker detects change during polling
+- ✅ Compares with historical data from time window
+- ✅ Generates enhanced Claude insight with trend analysis
+- ✅ Creates alert for all users tracking that market
+
+---
+
+## 🤖 Claude Integration Enhancement
 
 ### Session: Claude Prompt Enhancement
 **Date**: 2025-11-09
