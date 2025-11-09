@@ -6,6 +6,12 @@ const alertsListEl = document.getElementById('alerts-list')
 const alertsEmptyEl = document.getElementById('alerts-empty')
 const alertsCountEl = document.getElementById('alerts-count')
 const statusEl = document.getElementById('status')
+const pinForm = document.getElementById('pin-form')
+const pinInput = document.getElementById('pin-input')
+const pinSubmit = document.getElementById('pin-submit')
+const pinStatusEl = document.getElementById('pin-status')
+const quickPickButtons = document.querySelectorAll('[data-market-id]')
+let isPinning = false
 
 async function fetchJSON(path) {
   const response = await fetch(`${API_BASE_URL}${path}`)
@@ -79,6 +85,77 @@ function updateStatus(message, isError = false) {
   statusEl.style.color = isError ? '#f87171' : '#94a3b8'
 }
 
+function setPinStatus(message = '', type) {
+  if (!pinStatusEl) return
+  pinStatusEl.textContent = message
+  pinStatusEl.className = `pin-status${type ? ` ${type}` : ''}`
+}
+
+function setPinLoading(loading) {
+  if (!pinInput || !pinSubmit) return
+  isPinning = loading
+  pinInput.disabled = loading
+  pinSubmit.disabled = loading
+  quickPickButtons.forEach((button) => {
+    button.disabled = loading
+  })
+  if (loading) {
+    setPinStatus('Pinning…')
+  }
+}
+
+async function pinMarket(marketId) {
+  const response = await fetch(`${API_BASE_URL}/api/pin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ userId: USER_ID, marketId }),
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || 'Failed to pin market')
+  }
+
+  return response.json()
+}
+
+async function handlePinSubmit(event) {
+  event.preventDefault()
+  if (isPinning) return
+  const marketId = pinInput.value.trim()
+  if (!marketId) {
+    setPinStatus('Enter a market id to pin.', 'error')
+    return
+  }
+  try {
+    setPinLoading(true)
+    await pinMarket(marketId)
+    pinInput.value = ''
+    setPinStatus('Pinned! Watching for moves.', 'success')
+    await loadData()
+  } catch (error) {
+    console.error('[Polymarket Scout] pin failed', error)
+    const message = error instanceof Error ? error.message : 'Unable to pin market'
+    setPinStatus(message, 'error')
+  } finally {
+    setPinLoading(false)
+  }
+}
+
+function initPinning() {
+  if (!pinForm || !pinInput || !pinSubmit) return
+  setPinStatus('')
+  pinForm.addEventListener('submit', handlePinSubmit)
+  quickPickButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      pinInput.value = button.dataset.marketId ?? ''
+      pinInput.focus()
+    })
+  })
+}
+
 async function loadData() {
   updateStatus('Refreshing…')
   try {
@@ -101,5 +178,6 @@ document.getElementById('open-dashboard').addEventListener('click', () => {
 })
 
 document.addEventListener('DOMContentLoaded', () => {
+  initPinning()
   loadData()
 })

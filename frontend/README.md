@@ -29,6 +29,7 @@ Located in `frontend/extension`. It contains:
 - `manifest.json` – declares popup UI plus a background service worker
 - `popup.html/css/js` – lightweight UI for pinned markets + recent alerts
 - `background.js` – polls `/api/alerts`, updates the badge every minute, and fires a Chrome notification when a new alert arrives
+- Popup also includes a “Pin a market” form so you can add markets directly from the browser toolbar.
 
 ### Load Locally
 

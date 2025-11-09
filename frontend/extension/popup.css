@@ -154,3 +154,73 @@ button.ghost {
   color: #94a3b8;
   text-align: center;
 }
+
+.pin-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pin-form {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.pin-form input {
+  flex: 1;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 0.55rem 0.75rem;
+  background: rgba(15, 23, 42, 0.5);
+  color: #f8fafc;
+}
+
+.pin-form button {
+  border: none;
+  border-radius: 0.7rem;
+  padding: 0.55rem 0.9rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(14, 165, 233, 0.9));
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.pin-form button:disabled,
+.pin-form input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.quick-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.quick-picks button {
+  border: none;
+  border-radius: 0.7rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(14, 165, 233, 0.15);
+  color: #7dd3fc;
+  cursor: pointer;
+}
+
+.quick-picks button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pin-status {
+  margin: 0;
+  font-size: 0.8rem;
+  min-height: 1em;
+  color: #94a3b8;
+}
+
+.pin-status.error {
+  color: #f87171;
+}
+
+.pin-status.success {
+  color: #34d399;
+}

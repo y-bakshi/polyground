@@ -16,6 +16,25 @@
         <button id="open-dashboard" class="ghost">Open dashboard</button>
       </header>
 
+      <section class="pin-card">
+        <header class="pin-card__head">
+          <div>
+            <p class="eyebrow">Add Market</p>
+            <h2>Pin a market</h2>
+          </div>
+        </header>
+        <form id="pin-form" class="pin-form">
+          <input id="pin-input" type="text" placeholder="e.g. trump-2024" autocomplete="off" />
+          <button id="pin-submit" type="submit">Pin</button>
+        </form>
+        <div class="quick-picks" id="quick-picks">
+          <button type="button" data-market-id="trump-2024">US Election</button>
+          <button type="button" data-market-id="btc-100k">BTC $100k</button>
+          <button type="button" data-market-id="ai-regulation">AI Bill</button>
+        </div>
+        <p id="pin-status" class="pin-status"></p>
+      </section>
+
       <section>
         <ul id="pinned-list" class="pinned-list"></ul>
         <p id="pinned-empty" class="empty">No pinned markets yet.</p>
