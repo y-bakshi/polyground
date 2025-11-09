@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Polymarket Scout</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="popup">
+      <header>
+        <div>
+          <p class="eyebrow">Polymarket Scout</p>
+          <h1>Pinned markets</h1>
+        </div>
+        <button id="open-dashboard" class="ghost">Open dashboard</button>
+      </header>
+
+      <section class="pin-card">
+        <header class="pin-card__head">
+          <div>
+            <p class="eyebrow">Add Market</p>
+            <h2>Pin a market</h2>
+          </div>
+        </header>
+        <form id="pin-form" class="pin-form">
+          <input id="pin-input" type="text" placeholder="e.g. trump-2024" autocomplete="off" />
+          <button id="pin-submit" type="submit">Pin</button>
+        </form>
+        <div class="quick-picks" id="quick-picks">
+          <button type="button" data-market-id="trump-2024">US Election</button>
+          <button type="button" data-market-id="btc-100k">BTC $100k</button>
+          <button type="button" data-market-id="ai-regulation">AI Bill</button>
+        </div>
+        <p id="pin-status" class="pin-status"></p>
+      </section>
+
+      <section>
+        <ul id="pinned-list" class="pinned-list"></ul>
+        <p id="pinned-empty" class="empty">No pinned markets yet.</p>
+      </section>
+
+      <section>
+        <div class="alerts-head">
+          <h2>Alerts</h2>
+          <span id="alerts-count" class="badge">0</span>
+        </div>
+        <ul id="alerts-list" class="alerts-list"></ul>
+        <p id="alerts-empty" class="empty">No alerts in the last cycle.</p>
+      </section>
+
+      <footer>
+        <button id="refresh" class="primary">Refresh</button>
+      </footer>
+
+      <p id="status" class="status"></p>
+    </div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

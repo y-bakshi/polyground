@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Polymarket Scout",
+  "description": "Pin Polymarket markets, monitor alerts, and jump back into the dashboard fast.",
+  "version": "0.1.0",
+  "icons": {
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Polymarket Scout"
+  },
+  "permissions": ["alarms", "storage", "notifications"],
+  "host_permissions": ["http://localhost:8000/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}
