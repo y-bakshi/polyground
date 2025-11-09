@@ -1,7 +1,7 @@
 /**
  * Extract market ID from Polymarket URL or return the input if it's already an ID
  */
-export function extractMarketId(input: string): { marketId: string; error?: string } {
+export function extractMarketId(input: string): { marketId: string; isEvent?: boolean; error?: string } {
   const trimmed = input.trim()
 
   // If it's not a URL, assume it's already a market ID
@@ -20,12 +20,20 @@ export function extractMarketId(input: string): { marketId: string; error?: stri
       }
     }
 
-    // Check if it's an event URL (multi-outcome)
+    // Handle event URLs (multi-outcome events)
     if (url.pathname.startsWith('/event/')) {
-      return {
-        marketId: '',
-        error: 'This is a multi-outcome event. Please share an individual market link instead.'
+      // Extract event slug or ID
+      const parts = url.pathname.split('/')
+      const eventSlug = parts[2] // /event/{slug}
+
+      // Try to extract numeric ID from the end
+      const match = eventSlug.match(/-(\d+)$/)
+      if (match) {
+        return { marketId: match[1], isEvent: true }
       }
+
+      // Return the full slug as event ID
+      return { marketId: eventSlug, isEvent: true }
     }
 
     // Extract market ID from /market/ URLs

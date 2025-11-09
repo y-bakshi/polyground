@@ -32,25 +32,14 @@ router = APIRouter(prefix="/api", tags=["api"])
 @router.post("/pin", response_model=StatusResponse)
 async def pin_market(req: PinRequest, db: Session = Depends(get_db)):
     """
-    Pin a market for a user.
+    Pin a market or event for a user.
     Creates a new pinned market entry if it doesn't already exist.
+    Accepts both individual market IDs and multi-outcome event IDs.
     """
     # Check if user exists
     user = db.query(User).filter(User.id == req.userId).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-
-    # Check if the ID is actually a multi-outcome event
-    polymarket = get_polymarket_service()
-    event_data = await polymarket.check_if_event(req.marketId)
-
-    if event_data:
-        # This is a multi-outcome event, not a single market
-        event_title = event_data.get("title", "Unknown Event")
-        raise HTTPException(
-            status_code=400,
-            detail=f"This is a multi-outcome event: '{event_title}'. Please share an individual market link instead of the event link."
-        )
 
     # Check if already pinned
     existing = (
@@ -65,7 +54,7 @@ async def pin_market(req: PinRequest, db: Session = Depends(get_db)):
     if existing:
         return StatusResponse(
             status="ok",
-            message="Market already pinned"
+            message="Already pinned"
         )
 
     # Create new pin
@@ -80,7 +69,7 @@ async def pin_market(req: PinRequest, db: Session = Depends(get_db)):
 
     return StatusResponse(
         status="ok",
-        message=f"Market {req.marketId} pinned successfully"
+        message=f"Pinned successfully"
     )
 
 
@@ -298,3 +287,46 @@ async def mark_alert_seen(alert_id: int, db: Session = Depends(get_db)):
         status="ok",
         message=f"Alert {alert_id} marked as seen"
     )
+
+
+# ========== EVENT ENDPOINT ==========
+
+@router.get("/event/{event_id}")
+async def get_event_detail(event_id: str):
+    """
+    Get event details with all individual markets for multi-outcome events.
+    Returns event metadata and list of all markets within the event.
+    """
+    polymarket = get_polymarket_service()
+
+    # Try to fetch event data
+    event_data = await polymarket.check_if_event(event_id)
+
+    if not event_data:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # Extract market information
+    markets = event_data.get("markets", [])
+
+    # Format response
+    return {
+        "id": event_data.get("id"),
+        "title": event_data.get("title"),
+        "description": event_data.get("description"),
+        "end_date": event_data.get("endDate"),
+        "active": event_data.get("active"),
+        "closed": event_data.get("closed"),
+        "volume_24hr": event_data.get("volume24hr"),
+        "markets": [
+            {
+                "id": m.get("id"),
+                "question": m.get("question"),
+                "outcome_prices": m.get("outcomePrices"),
+                "active": m.get("active"),
+                "closed": m.get("closed"),
+                "group_item_title": m.get("groupItemTitle"),
+            }
+            for m in markets
+        ],
+        "market_count": len(markets),
+    }

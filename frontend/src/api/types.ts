@@ -47,3 +47,24 @@ export interface PinMarketRequest {
   userId: string
   marketId: string
 }
+
+export interface EventMarket {
+  id: string
+  question: string
+  outcome_prices: string
+  active: boolean
+  closed: boolean
+  group_item_title: string
+}
+
+export interface EventDetail {
+  id: string
+  title: string
+  description?: string
+  end_date?: string
+  active: boolean
+  closed: boolean
+  volume_24hr: number
+  markets: EventMarket[]
+  market_count: number
+}

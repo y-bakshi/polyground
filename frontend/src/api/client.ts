@@ -2,6 +2,7 @@ import { API_BASE_URL, USE_MOCK_DATA } from '../config/constants'
 import { mockStore } from './mockData'
 import type {
   AlertItem,
+  EventDetail,
   MarketSnapshot,
   PinMarketRequest,
   PinnedMarket,
@@ -201,6 +202,22 @@ export const apiClient = {
     } catch (error) {
       console.warn('Falling back to mock data for market snapshot', error)
       return mockStore.getMarketSnapshot(marketId)
+    }
+  },
+
+  getEventDetail: async (eventId: string): Promise<EventDetail> => {
+    if (shouldMock) {
+      throw new Error('Events not supported in mock mode')
+    }
+
+    try {
+      const response = await request<EventDetail>(
+        `/api/event/${eventId}`,
+      )
+      return response
+    } catch (error) {
+      console.error('Failed to fetch event details', error)
+      throw error
     }
   },
 }
