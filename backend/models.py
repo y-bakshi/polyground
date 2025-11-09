@@ -28,6 +28,11 @@ class PinnedMarket(Base):
     market_id = Column(String, nullable=False, index=True)  # Polymarket market ID
     pinned_at = Column(DateTime, default=datetime.utcnow)
 
+    # Event support
+    is_event = Column(Boolean, default=False, nullable=False)  # True if this is a multi-outcome event
+    event_id = Column(String, nullable=True, index=True)  # Event ID if is_event=True
+    event_title = Column(String, nullable=True)  # Event title if is_event=True
+
     # Relationships
     user = relationship("User", back_populates="pinned_markets")
 

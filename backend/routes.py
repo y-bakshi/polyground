@@ -33,20 +33,30 @@ router = APIRouter(prefix="/api", tags=["api"])
 async def pin_market(req: PinRequest, db: Session = Depends(get_db)):
     """
     Pin a market or event for a user.
-    Creates a new pinned market entry if it doesn't already exist.
-    Accepts both individual market IDs and multi-outcome event IDs.
+    Accepts Polymarket URLs, slugs, or numeric IDs.
+    Backend resolves all formats automatically.
     """
     # Check if user exists
     user = db.query(User).filter(User.id == req.userId).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Resolve the input to market/event details
+    polymarket = get_polymarket_service()
+    market_id, event_id, event_title, is_event = await polymarket.resolve_market_input(req.marketId)
+
+    if not market_id:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not resolve '{req.marketId}' to a valid market or event"
+        )
+
     # Check if already pinned
     existing = (
         db.query(PinnedMarket)
         .filter(
             PinnedMarket.user_id == req.userId,
-            PinnedMarket.market_id == req.marketId
+            PinnedMarket.market_id == market_id
         )
         .first()
     )
@@ -60,16 +70,20 @@ async def pin_market(req: PinRequest, db: Session = Depends(get_db)):
     # Create new pin
     new_pin = PinnedMarket(
         user_id=req.userId,
-        market_id=req.marketId,
+        market_id=market_id,
+        is_event=is_event,
+        event_id=event_id,
+        event_title=event_title,
     )
 
     db.add(new_pin)
     db.commit()
     db.refresh(new_pin)
 
+    pin_type = "event" if is_event else "market"
     return StatusResponse(
         status="ok",
-        message=f"Pinned successfully"
+        message=f"Pinned {pin_type} successfully"
     )
 
 
@@ -156,6 +170,16 @@ async def get_pinned_markets(
             for h in history_records
         ]
 
+        # Calculate change percentage from first to last data point
+        change_pct = 0.0
+        if len(history_records) >= 2:
+            first_prob = history_records[0].implied_prob
+            last_prob = history_records[-1].implied_prob
+            change_pct = last_prob - first_prob
+
+        # For events, use event_title instead of market_title
+        display_title = pin.event_title if pin.is_event else (latest_history.market_title if latest_history else None)
+
         item = PinnedMarketWithLatest(
             id=pin.id,
             user_id=pin.user_id,
@@ -164,8 +188,12 @@ async def get_pinned_markets(
             latest_prob=latest_history.implied_prob if latest_history else None,
             latest_price=latest_history.price if latest_history else None,
             latest_volume=latest_history.volume if latest_history else None,
-            market_title=latest_history.market_title if latest_history else None,
+            market_title=display_title,
             history=history_snapshots,
+            change_pct=change_pct,
+            is_event=pin.is_event,
+            event_id=pin.event_id,
+            event_title=pin.event_title,
         )
         items.append(item)
 
@@ -321,12 +349,29 @@ async def mark_alert_seen(alert_id: int, db: Session = Depends(get_db)):
 async def get_event_detail(event_id: str):
     """
     Get event details with all individual markets for multi-outcome events.
+    Accepts both numeric event IDs and slugs.
     Returns event metadata and list of all markets within the event.
     """
     polymarket = get_polymarket_service()
 
-    # Try to fetch event data
+    # Try to fetch event data by ID first
     event_data = await polymarket.check_if_event(event_id)
+
+    # If not found and event_id doesn't look like a number, try as slug
+    if not event_data and not event_id.isdigit():
+        # Try to resolve slug to event
+        import httpx
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"https://gamma-api.polymarket.com/events?slug={event_id}&limit=1"
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if isinstance(data, list) and len(data) > 0:
+                        event_data = data[0]
+        except Exception:
+            pass
 
     if not event_data:
         raise HTTPException(status_code=404, detail="Event not found")

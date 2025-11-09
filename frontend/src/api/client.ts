@@ -23,6 +23,9 @@ interface BackendPinnedMarket {
   latest_volume: number | null
   market_title: string | null
   history: BackendMarketHistory[]
+  change_pct: number
+  is_event: boolean
+  event_id: string | null
 }
 
 interface BackendAlert {
@@ -60,22 +63,16 @@ function adaptPinnedMarket(backend: BackendPinnedMarket): PinnedMarket {
     value: h.implied_prob,
   }))
 
-  // Calculate change percentage from first to last data point
-  let changePct = 0
-  if (backend.history.length >= 2) {
-    const firstProb = backend.history[0].implied_prob
-    const lastProb = backend.history[backend.history.length - 1].implied_prob
-    changePct = lastProb - firstProb
-  }
-
   return {
     marketId: backend.market_id,
     title: backend.market_title || `Market ${backend.market_id}`,
     impliedProbability: backend.latest_prob || 0,
-    changePct,
+    changePct: backend.change_pct,  // Now calculated by backend
     volume24h: backend.latest_volume || undefined,
     updatedAt: backend.pinned_at,
     sparkline,
+    isEvent: backend.is_event,
+    eventId: backend.event_id || undefined,
   }
 }
 
@@ -175,7 +172,10 @@ export const apiClient = {
         '/api/pin',
         {
           method: 'POST',
-          body: JSON.stringify({ userId: Number(payload.userId), marketId: payload.marketId }),
+          body: JSON.stringify({
+            userId: Number(payload.userId),
+            marketId: payload.marketId,
+          }),
         },
       )
       return { status: response.status }

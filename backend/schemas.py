@@ -27,7 +27,7 @@ class UserResponse(UserBase):
 # Pin market schemas
 class PinRequest(BaseModel):
     userId: int = Field(..., description="User ID")
-    marketId: str = Field(..., description="Polymarket market ID")
+    marketId: str = Field(..., description="Polymarket URL, slug, or numeric market ID")
 
 
 class UnpinRequest(BaseModel):
@@ -96,7 +96,11 @@ class PinnedMarketWithLatest(BaseModel):
     latest_price: Optional[float] = None
     latest_volume: Optional[float] = None
     market_title: Optional[str] = None
-    history: List[MarketSnapshot] = []  # Historical data for sparkline and change calculation
+    history: List[MarketSnapshot] = []  # Historical data for sparkline
+    change_pct: float = 0.0  # Percentage change from first to last data point
+    is_event: bool = False  # True if this is a multi-outcome event
+    event_id: Optional[str] = None  # Event ID if is_event=True
+    event_title: Optional[str] = None  # Event title if is_event=True
 
     class Config:
         from_attributes = True

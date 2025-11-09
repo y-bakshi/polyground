@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { extractMarketId, resolveSlugToMarketId } from '../../utils/polymarket'
 
 interface PinMarketPanelProps {
   isSubmitting: boolean
-  onPin: (marketId: string) => Promise<unknown>
+  onPin: (input: string) => Promise<unknown>
 }
 
 const quickPicks = [
@@ -26,45 +25,10 @@ export const PinMarketPanel = ({ isSubmitting, onPin }: PinMarketPanelProps) => 
     if (!trimmed) return
 
     setStatus(null)
-
-    // Extract market ID or slug from URL
-    const { marketId, slug, isEvent, error } = extractMarketId(trimmed)
-
-    if (error) {
-      setStatus({ type: 'error', message: error })
-      return
-    }
-
-    let finalMarketId: string
-
-    // If we have a direct market ID, use it
-    if (marketId) {
-      finalMarketId = marketId
-    }
-    // If we have a slug, resolve it to a market ID
-    else if (slug) {
-      setStatus({ type: 'info', message: 'Resolving market...' })
-
-      const resolvedId = await resolveSlugToMarketId(slug, isEvent)
-
-      if (!resolvedId) {
-        setStatus({
-          type: 'error',
-          message: `Could not find ${isEvent ? 'event' : 'market'} with slug "${slug}". Try entering the numeric market ID instead.`
-        })
-        return
-      }
-
-      finalMarketId = resolvedId
-    }
-    // Neither marketId nor slug found
-    else {
-      setStatus({ type: 'error', message: 'Please enter a valid market ID or URL' })
-      return
-    }
+    setStatus({ type: 'info', message: 'Resolving...' })
 
     try {
-      await onPin(finalMarketId)
+      await onPin(trimmed)
       setValue('')
       setStatus({ type: 'success', message: "Pinned! We'll watch it for moves." })
     } catch (error) {
