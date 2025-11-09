@@ -22,6 +22,7 @@ from schemas import (
     AlertsListResponse,
     StatusResponse,
 )
+from services.polymarket import get_polymarket_service
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -38,6 +39,18 @@ async def pin_market(req: PinRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == req.userId).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    # Check if the ID is actually a multi-outcome event
+    polymarket = get_polymarket_service()
+    event_data = await polymarket.check_if_event(req.marketId)
+
+    if event_data:
+        # This is a multi-outcome event, not a single market
+        event_title = event_data.get("title", "Unknown Event")
+        raise HTTPException(
+            status_code=400,
+            detail=f"This is a multi-outcome event: '{event_title}'. Please share an individual market link instead of the event link."
+        )
 
     # Check if already pinned
     existing = (

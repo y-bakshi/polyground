@@ -23,6 +23,38 @@ class PolymarketService:
         """Close the HTTP client"""
         await self.client.aclose()
 
+    async def check_if_event(self, id_str: str) -> Optional[Dict[str, Any]]:
+        """
+        Check if an ID corresponds to a multi-outcome event.
+
+        Args:
+            id_str: The ID to check
+
+        Returns:
+            Event data if it's an event, None otherwise
+        """
+        try:
+            # Try direct event endpoint
+            url = f"{self.GAMMA_API_BASE}/events/{id_str}"
+            response = await self.client.get(url)
+            if response.status_code == 200:
+                return response.json()
+
+            # Try searching by numeric ID in events
+            url = f"{self.GAMMA_API_BASE}/events"
+            params = {"id": id_str}
+            response = await self.client.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    return data[0]
+
+            return None
+
+        except Exception as e:
+            logger.debug(f"Not an event: {id_str}")
+            return None
+
     async def get_market(self, market_id: str) -> Optional[Dict[str, Any]]:
         """
         Fetch market data from Gamma API by market ID.
