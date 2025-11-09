@@ -25,34 +25,48 @@ class PolymarketService:
 
     async def check_if_event(self, id_str: str) -> Optional[Dict[str, Any]]:
         """
-        Check if an ID corresponds to a multi-outcome event.
+        Check if an ID/slug corresponds to a multi-outcome event.
+
+        Supports both numeric IDs and slug-based lookups (e.g., from URLs).
 
         Args:
-            id_str: The ID to check
+            id_str: The ID or slug to check (e.g., "764" or "of-views-of-next-mrbeast-video-on-day-1-764")
 
         Returns:
             Event data if it's an event, None otherwise
         """
         try:
-            # Try direct event endpoint
-            url = f"{self.GAMMA_API_BASE}/events/{id_str}"
-            response = await self.client.get(url)
-            if response.status_code == 200:
-                return response.json()
-
-            # Try searching by numeric ID in events
+            # Try slug-based lookup first (handles URL slugs)
             url = f"{self.GAMMA_API_BASE}/events"
+            params = {"slug": id_str}
+            response = await self.client.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    logger.info(f"Found event by slug: {id_str}")
+                    return data[0]
+
+            # Try numeric ID lookup
             params = {"id": id_str}
             response = await self.client.get(url, params=params)
             if response.status_code == 200:
                 data = response.json()
                 if isinstance(data, list) and len(data) > 0:
+                    logger.info(f"Found event by ID: {id_str}")
                     return data[0]
 
+            # Try direct endpoint (legacy support)
+            url = f"{self.GAMMA_API_BASE}/events/{id_str}"
+            response = await self.client.get(url)
+            if response.status_code == 200:
+                logger.info(f"Found event by direct endpoint: {id_str}")
+                return response.json()
+
+            logger.debug(f"Event not found: {id_str}")
             return None
 
         except Exception as e:
-            logger.debug(f"Not an event: {id_str}")
+            logger.error(f"Error checking event {id_str}: {e}")
             return None
 
     async def get_market(self, market_id: str) -> Optional[Dict[str, Any]]:
