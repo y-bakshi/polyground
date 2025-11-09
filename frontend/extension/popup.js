@@ -33,7 +33,8 @@ function renderPinned(markets = []) {
     li.className = 'pinned-item'
     const info = document.createElement('div')
     const title = document.createElement('h3')
-    title.textContent = market.title
+    const label = market.market_title || market.title || market.marketId
+    title.textContent = label
     const meta = document.createElement('p')
     meta.textContent = `${market.impliedProbability.toFixed(1)}% • Δ ${market.changePct.toFixed(1)}%`
     info.appendChild(title)
