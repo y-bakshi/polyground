@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { extractMarketId } from '../../utils/polymarket'
+import { extractMarketId, resolveSlugToMarketId } from '../../utils/polymarket'
 
 interface PinMarketPanelProps {
   isSubmitting: boolean
@@ -8,11 +8,11 @@ interface PinMarketPanelProps {
 
 const quickPicks = [
   { id: '516710', label: 'US Recession 2025' },
-  { id: '623603', label: 'Gov Shutdown Nov 12-15' },
+  { id: '516706', label: 'Fed Rate Hike 2025' },
 ]
 
 type StatusMessage = {
-  type: 'success' | 'error'
+  type: 'success' | 'error' | 'info'
   message: string
 }
 
@@ -27,21 +27,44 @@ export const PinMarketPanel = ({ isSubmitting, onPin }: PinMarketPanelProps) => 
 
     setStatus(null)
 
-    // Extract market ID from URL or validate input
-    const { marketId, error } = extractMarketId(trimmed)
+    // Extract market ID or slug from URL
+    const { marketId, slug, isEvent, error } = extractMarketId(trimmed)
 
     if (error) {
       setStatus({ type: 'error', message: error })
       return
     }
 
-    if (!marketId) {
+    let finalMarketId: string
+
+    // If we have a direct market ID, use it
+    if (marketId) {
+      finalMarketId = marketId
+    }
+    // If we have a slug, resolve it to a market ID
+    else if (slug) {
+      setStatus({ type: 'info', message: 'Resolving market...' })
+
+      const resolvedId = await resolveSlugToMarketId(slug, isEvent)
+
+      if (!resolvedId) {
+        setStatus({
+          type: 'error',
+          message: `Could not find ${isEvent ? 'event' : 'market'} with slug "${slug}". Try entering the numeric market ID instead.`
+        })
+        return
+      }
+
+      finalMarketId = resolvedId
+    }
+    // Neither marketId nor slug found
+    else {
       setStatus({ type: 'error', message: 'Please enter a valid market ID or URL' })
       return
     }
 
     try {
-      await onPin(marketId)
+      await onPin(finalMarketId)
       setValue('')
       setStatus({ type: 'success', message: "Pinned! We'll watch it for moves." })
     } catch (error) {

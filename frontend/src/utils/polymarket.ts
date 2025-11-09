@@ -1,12 +1,18 @@
 /**
- * Extract market ID from Polymarket URL or return the input if it's already an ID
+ * Extract slug or market ID from Polymarket URL
+ * Returns either a numeric market ID or a slug that needs to be resolved
  */
-export function extractMarketId(input: string): { marketId: string; isEvent?: boolean; error?: string } {
+export function extractMarketId(input: string): { marketId?: string; slug?: string; isEvent?: boolean; error?: string } {
   const trimmed = input.trim()
 
-  // If it's not a URL, assume it's already a market ID
+  // If it's not a URL, assume it's already a market ID (numeric)
   if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-    return { marketId: trimmed }
+    // Check if it's a numeric ID
+    if (/^\d+$/.test(trimmed)) {
+      return { marketId: trimmed }
+    }
+    // Otherwise treat it as a slug
+    return { slug: trimmed }
   }
 
   try {
@@ -15,54 +21,71 @@ export function extractMarketId(input: string): { marketId: string; isEvent?: bo
     // Check if it's a Polymarket URL
     if (!url.hostname.includes('polymarket.com')) {
       return {
-        marketId: '',
         error: 'Please provide a valid Polymarket URL or market ID'
       }
     }
 
     // Handle event URLs (multi-outcome events)
+    // Example: https://polymarket.com/event/fed-decision-in-october?tid=123
     if (url.pathname.startsWith('/event/')) {
-      // Extract event slug or ID
-      const parts = url.pathname.split('/')
-      const eventSlug = parts[2] // /event/{slug}
-
-      // Try to extract numeric ID from the end
-      const match = eventSlug.match(/-(\d+)$/)
-      if (match) {
-        return { marketId: match[1], isEvent: true }
+      const parts = url.pathname.split('/').filter(Boolean)
+      if (parts.length >= 2) {
+        const eventSlug = parts[1] // /event/{slug}
+        return { slug: eventSlug, isEvent: true }
       }
-
-      // Return the full slug as event ID
-      return { marketId: eventSlug, isEvent: true }
     }
 
-    // Extract market ID from /market/ URLs
+    // Handle market URLs
+    // Example: https://polymarket.com/market/us-recession-in-2025?tid=123
     if (url.pathname.startsWith('/market/')) {
-      const parts = url.pathname.split('/')
-      const marketSlug = parts[2] // /market/{slug}
-
-      // Extract numeric ID if present at the end of slug
-      const match = marketSlug.match(/-(\d+)$/)
-      if (match) {
-        return { marketId: match[1] }
+      const parts = url.pathname.split('/').filter(Boolean)
+      if (parts.length >= 2) {
+        const marketSlug = parts[1] // /market/{slug}
+        return { slug: marketSlug }
       }
-
-      // Otherwise return the full slug
-      return { marketId: marketSlug }
     }
 
-    // For any other URL pattern, try to extract a numeric ID
-    const pathMatch = url.pathname.match(/\/(\d+)/)
-    if (pathMatch) {
-      return { marketId: pathMatch[1] }
+    // For any other URL pattern, try to extract from pathname
+    const pathParts = url.pathname.split('/').filter(Boolean)
+    if (pathParts.length > 0) {
+      const lastPart = pathParts[pathParts.length - 1]
+      return { slug: lastPart }
     }
 
     return {
-      marketId: '',
-      error: 'Could not extract market ID from URL. Please enter just the market ID (e.g., 516710)'
+      error: 'Could not extract market slug from URL. Please enter the market ID (e.g., 516710)'
     }
   } catch (error) {
-    // Invalid URL, return as-is (might be a market ID)
-    return { marketId: trimmed }
+    // Invalid URL, treat as slug or ID
+    if (/^\d+$/.test(trimmed)) {
+      return { marketId: trimmed }
+    }
+    return { slug: trimmed }
+  }
+}
+
+/**
+ * Resolve a slug to a market ID using the Polymarket Gamma API
+ */
+export async function resolveSlugToMarketId(slug: string, isEvent: boolean = false): Promise<string | null> {
+  try {
+    const endpoint = isEvent ? 'events' : 'markets'
+    const response = await fetch(`https://gamma-api.polymarket.com/${endpoint}?slug=${slug}&limit=1`)
+
+    if (!response.ok) {
+      console.error('Failed to resolve slug:', response.status)
+      return null
+    }
+
+    const data = await response.json()
+
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0].id
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error resolving slug to market ID:', error)
+    return null
   }
 }
