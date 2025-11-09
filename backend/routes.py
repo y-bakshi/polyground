@@ -465,23 +465,41 @@ async def get_event_detail(event_id: str):
     # Extract market information
     markets = event_data.get("markets", [])
 
-    # Format response
+    # Format response with complete market data
     return {
         "id": event_data.get("id"),
+        "slug": event_data.get("slug"),
         "title": event_data.get("title"),
         "description": event_data.get("description"),
         "end_date": event_data.get("endDate"),
+        "start_date": event_data.get("startDate"),
         "active": event_data.get("active"),
         "closed": event_data.get("closed"),
+        "volume": event_data.get("volume"),
         "volume_24hr": event_data.get("volume24hr"),
+        "liquidity": event_data.get("liquidity"),
         "markets": [
             {
                 "id": m.get("id"),
+                "slug": m.get("slug"),
                 "question": m.get("question"),
-                "outcome_prices": m.get("outcomePrices"),
+                "outcome_prices": m.get("outcomePrices"),  # Array of current odds
+                "outcomes": m.get("outcomes"),  # ["Yes", "No"] or custom outcomes
                 "active": m.get("active"),
                 "closed": m.get("closed"),
                 "group_item_title": m.get("groupItemTitle"),
+                # Pricing data
+                "last_trade_price": m.get("lastTradePrice"),
+                "best_bid": m.get("bestBid"),
+                "best_ask": m.get("bestAsk"),
+                # Volume data
+                "volume": m.get("volumeNum"),
+                "volume_24hr": m.get("volume24hr"),
+                # Price changes
+                "one_day_price_change": m.get("oneDayPriceChange"),
+                "one_hour_price_change": m.get("oneHourPriceChange"),
+                # Liquidity
+                "liquidity": m.get("liquidityNum"),
             }
             for m in markets
         ],

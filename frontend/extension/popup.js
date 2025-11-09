@@ -12,6 +12,10 @@ const pinSubmit = document.getElementById('pin-submit')
 const pinStatusEl = document.getElementById('pin-status')
 const quickPickButtons = document.querySelectorAll('[data-market-id]')
 let isPinning = false
+const quickPicks = [
+  { id: '516710', label: 'US Recession 2025' },
+  { id: '516706', label: 'Fed Rate Hike 2025' },
+]
 
 async function fetchJSON(path) {
   const response = await fetch(`${API_BASE_URL}${path}`)
@@ -33,7 +37,8 @@ function renderPinned(markets = []) {
     li.className = 'pinned-item'
     const info = document.createElement('div')
     const title = document.createElement('h3')
-    title.textContent = market.title
+    const label = market.market_title || market.title || market.marketId
+    title.textContent = label
     const meta = document.createElement('p')
     meta.textContent = `${market.impliedProbability.toFixed(1)}% • Δ ${market.changePct.toFixed(1)}%`
     info.appendChild(title)
@@ -99,9 +104,6 @@ function setPinLoading(loading) {
   quickPickButtons.forEach((button) => {
     button.disabled = loading
   })
-  if (loading) {
-    setPinStatus('Pinning…')
-  }
 }
 
 async function pinMarket(marketId) {
@@ -124,16 +126,18 @@ async function pinMarket(marketId) {
 async function handlePinSubmit(event) {
   event.preventDefault()
   if (isPinning) return
-  const marketId = pinInput.value.trim()
-  if (!marketId) {
-    setPinStatus('Enter a market id to pin.', 'error')
+  const rawValue = pinInput.value.trim()
+  if (!rawValue) {
+    setPinStatus('Please enter a market ID or Polymarket URL', 'error')
     return
   }
+
   try {
+    setPinStatus('Resolving...', 'info')
     setPinLoading(true)
-    await pinMarket(marketId)
+    await pinMarket(rawValue)
     pinInput.value = ''
-    setPinStatus('Pinned! Watching for moves.', 'success')
+    setPinStatus("Pinned! We'll watch it for moves.", 'success')
     await loadData()
   } catch (error) {
     console.error('[Polymarket Scout] pin failed', error)
@@ -148,10 +152,16 @@ function initPinning() {
   if (!pinForm || !pinInput || !pinSubmit) return
   setPinStatus('')
   pinForm.addEventListener('submit', handlePinSubmit)
-  quickPickButtons.forEach((button) => {
+  quickPickButtons.forEach((button, index) => {
+    const pick = quickPicks[index]
+    if (pick) {
+      button.textContent = pick.label
+      button.dataset.marketId = pick.id
+    }
     button.addEventListener('click', () => {
       pinInput.value = button.dataset.marketId ?? ''
       pinInput.focus()
+      setPinStatus('')
     })
   })
 }
