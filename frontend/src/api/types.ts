@@ -13,6 +13,8 @@ export interface PinnedMarket {
   updatedAt: string
   sparkline: SparklinePoint[]
   unreadAlerts?: number
+  isEvent?: boolean  // True if this is a multi-outcome event
+  eventId?: string  // Event ID if isEvent=true
 }
 
 export interface AlertItem {
@@ -45,7 +47,7 @@ export interface MarketSnapshot {
 
 export interface PinMarketRequest {
   userId: string
-  marketId: string
+  marketId: string  // Can be URL, slug, or numeric ID
 }
 
 export interface EventMarket {

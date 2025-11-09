@@ -88,6 +88,7 @@ def seed_test_data():
             market_id="0x1234567890abcdef",
             change_pct=15.5,
             threshold=10.0,
+            market_title="Will Bitcoin hit $100k by end of year?",
             insight_text="Sample insight: The market has moved significantly due to recent news. "
                          "Risk 1: High volatility expected. Risk 2: Low liquidity. "
                          "Note: This is for informational purposes only.",

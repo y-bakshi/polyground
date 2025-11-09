@@ -30,26 +30,33 @@ export const PinnedTable = ({ markets, isLoading }: PinnedTableProps) => {
           </tr>
         </thead>
         <tbody>
-          {markets.map((market) => (
-            <tr key={market.marketId}>
-              <td>
-                <Link to={`/market/${market.marketId}`} className="market-link">
-                  <p>{market.title}</p>
-                  <span>{market.category ?? 'General'}</span>
-                </Link>
-              </td>
-              <td>{formatPercent(market.impliedProbability)}</td>
-              <td>
-                <span className={market.changePct >= 0 ? 'delta positive' : 'delta negative'}>
-                  {formatPercent(market.changePct)}
-                </span>
-              </td>
-              <td>{market.volume24h ? `$${market.volume24h.toLocaleString()}` : '—'}</td>
-              <td>
-                <Sparkline data={market.sparkline} />
-              </td>
-            </tr>
-          ))}
+          {markets.map((market) => {
+            // Link to event page if this is an event, otherwise link to market page
+            const linkPath = market.isEvent && market.eventId
+              ? `/event/${market.eventId}`
+              : `/market/${market.marketId}`
+
+            return (
+              <tr key={market.marketId}>
+                <td>
+                  <Link to={linkPath} className="market-link">
+                    <p>{market.title}</p>
+                    <span>{market.isEvent ? 'Multi-outcome event' : (market.category ?? 'General')}</span>
+                  </Link>
+                </td>
+                <td>{formatPercent(market.impliedProbability)}</td>
+                <td>
+                  <span className={market.changePct >= 0 ? 'delta positive' : 'delta negative'}>
+                    {formatPercent(market.changePct)}
+                  </span>
+                </td>
+                <td>{market.volume24h ? `$${market.volume24h.toLocaleString()}` : '—'}</td>
+                <td>
+                  <Sparkline data={market.sparkline} />
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>

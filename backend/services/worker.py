@@ -213,6 +213,7 @@ class MarketPollingWorker:
                 ts=datetime.utcnow(),
                 change_pct=change_pct,
                 threshold=self.alert_threshold,
+                market_title=market_title,
                 insight_text=insight_text,
                 seen=False
             )

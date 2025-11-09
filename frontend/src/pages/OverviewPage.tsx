@@ -58,8 +58,8 @@ export const OverviewPage = () => {
         <PinnedTable markets={pinnedMarkets} isLoading={isLoading} />
         <PinMarketPanel
           isSubmitting={isPinning}
-          onPin={async (marketId) => {
-            await pinMarket(marketId)
+          onPin={async (input) => {
+            await pinMarket(input)
           }}
         />
       </div>

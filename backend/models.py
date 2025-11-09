@@ -28,6 +28,11 @@ class PinnedMarket(Base):
     market_id = Column(String, nullable=False, index=True)  # Polymarket market ID
     pinned_at = Column(DateTime, default=datetime.utcnow)
 
+    # Event support
+    is_event = Column(Boolean, default=False, nullable=False)  # True if this is a multi-outcome event
+    event_id = Column(String, nullable=True, index=True)  # Event ID if is_event=True
+    event_title = Column(String, nullable=True)  # Event title if is_event=True
+
     # Relationships
     user = relationship("User", back_populates="pinned_markets")
 
@@ -70,6 +75,9 @@ class Alert(Base):
     # Alert trigger data
     change_pct = Column(Float, nullable=False)  # Percentage change that triggered alert
     threshold = Column(Float, nullable=False)  # Threshold that was exceeded
+
+    # Market metadata
+    market_title = Column(String, nullable=True)  # Market title for display
 
     # Claude-generated insight
     insight_text = Column(Text, nullable=True)

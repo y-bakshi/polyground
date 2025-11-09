@@ -22,6 +22,10 @@ interface BackendPinnedMarket {
   latest_price: number | null
   latest_volume: number | null
   market_title: string | null
+  history: BackendMarketHistory[]
+  change_pct: number
+  is_event: boolean
+  event_id: string | null
 }
 
 interface BackendAlert {
@@ -31,6 +35,7 @@ interface BackendAlert {
   ts: string
   change_pct: number
   threshold: number
+  market_title: string | null
   insight_text: string
   seen: boolean
 }
@@ -52,18 +57,22 @@ interface BackendMarketDetail {
 
 // Adapter functions to convert backend responses to frontend types
 function adaptPinnedMarket(backend: BackendPinnedMarket): PinnedMarket {
-  const sparkline: SparklinePoint[] = backend.latest_prob !== null
-    ? [{ ts: backend.pinned_at, value: backend.latest_prob }]
-    : []
+  // Convert history to sparkline format
+  const sparkline: SparklinePoint[] = backend.history.map(h => ({
+    ts: h.ts,
+    value: h.implied_prob,
+  }))
 
   return {
     marketId: backend.market_id,
     title: backend.market_title || `Market ${backend.market_id}`,
     impliedProbability: backend.latest_prob || 0,
-    changePct: 0, // Will be calculated from history if available
+    changePct: backend.change_pct,  // Now calculated by backend
     volume24h: backend.latest_volume || undefined,
     updatedAt: backend.pinned_at,
     sparkline,
+    isEvent: backend.is_event,
+    eventId: backend.event_id || undefined,
   }
 }
 
@@ -71,7 +80,7 @@ function adaptAlert(backend: BackendAlert): AlertItem {
   return {
     id: String(backend.id),
     marketId: backend.market_id,
-    marketTitle: `Market ${backend.market_id}`,
+    marketTitle: backend.market_title || `Market ${backend.market_id}`,
     changePct: backend.change_pct,
     threshold: backend.threshold,
     insightText: backend.insight_text,
@@ -163,7 +172,10 @@ export const apiClient = {
         '/api/pin',
         {
           method: 'POST',
-          body: JSON.stringify({ userId: Number(payload.userId), marketId: payload.marketId }),
+          body: JSON.stringify({
+            userId: Number(payload.userId),
+            marketId: payload.marketId,
+          }),
         },
       )
       return { status: response.status }

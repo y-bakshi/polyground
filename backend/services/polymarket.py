@@ -3,8 +3,9 @@ Polymarket Service - Fetch market data from Polymarket APIs
 """
 
 import httpx
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Tuple
 from datetime import datetime
+from urllib.parse import urlparse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,98 @@ class PolymarketService:
     async def close(self):
         """Close the HTTP client"""
         await self.client.aclose()
+
+    async def resolve_market_input(self, input_str: str) -> Tuple[Optional[str], Optional[str], Optional[str], bool]:
+        """
+        Resolve a user input (URL, slug, or ID) to market/event details.
+
+        Args:
+            input_str: URL, slug, or numeric ID
+
+        Returns:
+            Tuple of (market_id, event_id, event_title, is_event)
+        """
+        input_str = input_str.strip()
+
+        # Check if it's a URL
+        if input_str.startswith('http://') or input_str.startswith('https://'):
+            parsed = urlparse(input_str)
+
+            # Check if it's a Polymarket URL
+            if 'polymarket.com' not in parsed.hostname:
+                return (None, None, None, False)
+
+            # Extract path segments
+            path_parts = [p for p in parsed.path.split('/') if p]
+
+            if len(path_parts) < 2:
+                return (None, None, None, False)
+
+            path_type = path_parts[0]  # 'event' or 'market'
+            slug = path_parts[1]
+
+            # Resolve based on type
+            if path_type == 'event':
+                return await self._resolve_event_slug(slug)
+            elif path_type == 'market':
+                return await self._resolve_market_slug(slug)
+
+        # If it's numeric, assume it's a market ID
+        if input_str.isdigit():
+            return (input_str, None, None, False)
+
+        # Otherwise, try as a slug (market first, then event)
+        result = await self._resolve_market_slug(input_str)
+        if result[0]:
+            return result
+
+        return await self._resolve_event_slug(input_str)
+
+    async def _resolve_market_slug(self, slug: str) -> Tuple[Optional[str], Optional[str], Optional[str], bool]:
+        """Resolve a market slug to market ID."""
+        try:
+            url = f"{self.GAMMA_API_BASE}/markets"
+            params = {"slug": slug, "limit": 1}
+            response = await self.client.get(url, params=params)
+
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    market = data[0]
+                    return (market.get('id'), None, None, False)
+        except Exception as e:
+            logger.error(f"Error resolving market slug {slug}: {e}")
+
+        return (None, None, None, False)
+
+    async def _resolve_event_slug(self, slug: str) -> Tuple[Optional[str], Optional[str], Optional[str], bool]:
+        """Resolve an event slug to event ID, market ID, and event title."""
+        try:
+            url = f"{self.GAMMA_API_BASE}/events"
+            params = {"slug": slug, "limit": 1}
+            response = await self.client.get(url, params=params)
+
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list) and len(data) > 0:
+                    event = data[0]
+                    event_id = event.get('id')
+                    event_title = event.get('title')
+
+                    # Get first active market
+                    markets = event.get('markets', [])
+                    if markets:
+                        # Find first active, non-closed market
+                        active_market = next(
+                            (m for m in markets if m.get('active') and not m.get('closed')),
+                            markets[0]  # Fallback to first market
+                        )
+                        market_id = active_market.get('id')
+                        return (market_id, event_id, event_title, True)
+        except Exception as e:
+            logger.error(f"Error resolving event slug {slug}: {e}")
+
+        return (None, None, None, False)
 
     async def check_if_event(self, id_str: str) -> Optional[Dict[str, Any]]:
         """
