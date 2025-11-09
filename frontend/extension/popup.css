@@ -10,18 +10,17 @@ body {
 
 .popup {
   width: 320px;
-  padding: 1rem;
-  background: #020617;
+  padding: 1.25rem;
+  background: radial-gradient(circle at top, rgba(59, 130, 246, 0.25), rgba(2, 6, 23, 0.95));
   color: #f8fafc;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* reserved for future headers */
+.popup > header {
+  display: none;
 }
 
 .eyebrow {
@@ -38,11 +37,15 @@ h2 {
   font-size: 1.2rem;
 }
 
-section {
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 0.9rem;
-  padding: 0.75rem;
-  background: rgba(15, 23, 42, 0.7);
+.pin-card {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 1rem;
+  padding: 0.9rem;
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 15px 30px rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 }
 
 .pinned-list,
@@ -141,6 +144,28 @@ button.ghost {
   cursor: pointer;
 }
 
+.ghost--full {
+  width: 100%;
+  text-align: center;
+  margin-top: 0.25rem;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ghost--full:hover,
+.ghost--full:focus-visible {
+  background: rgba(59, 130, 246, 0.25);
+  color: #f8fafc;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+.popup-footer {
+  text-align: center;
+}
+
+.status--inline {
+  color: #cbd5e1;
+}
+
 .empty {
   text-align: center;
   margin: 0.5rem 0 0;
@@ -153,12 +178,6 @@ button.ghost {
   font-size: 0.8rem;
   color: #94a3b8;
   text-align: center;
-}
-
-.pin-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
 }
 
 .pin-form {

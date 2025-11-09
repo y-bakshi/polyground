@@ -215,13 +215,13 @@
 
 .pinned-table th {
   text-align: left;
-  padding-bottom: 0.6rem;
+  padding: 0 0.75rem 0.6rem;
   font-weight: 500;
   color: #94a3b8;
 }
 
 .pinned-table td {
-  padding: 0.85rem 0;
+  padding: 0.85rem 0.75rem;
   border-top: 1px solid rgba(148, 163, 184, 0.2);
 }
 
@@ -318,6 +318,16 @@
 
 .sparkline {
   width: 100%;
+  transition: transform 0.2s ease;
+  transform-origin: center;
+}
+
+.sparkline-cell {
+  padding-left: 0.5rem;
+}
+
+.sparkline-cell:hover .sparkline {
+  transform: scale(1.2);
 }
 
 .sparkline-placeholder {

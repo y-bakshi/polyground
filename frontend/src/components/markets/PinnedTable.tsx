@@ -123,7 +123,7 @@ export const PinnedTable = ({
                   </span>
                 </td>
                 <td>{market.volume24h ? `$${market.volume24h.toLocaleString()}` : '—'}</td>
-                <td>
+                <td className="sparkline-cell">
                   <Sparkline data={market.sparkline} />
                 </td>
               </tr>
