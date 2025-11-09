@@ -196,7 +196,16 @@ export const mockStore = {
     }
     return toPinned(snapshot)
   },
+  unpinMarket: (marketId: string): void => {
+    pinnedMarkets = pinnedMarkets.filter((item) => item.marketId !== marketId)
+  },
   getAlerts: (): AlertItem[] => clone(mockAlerts),
+  markAlertSeen: (alertId: string): void => {
+    const index = mockAlerts.findIndex((alert) => alert.id === alertId)
+    if (index !== -1) {
+      mockAlerts[index] = { ...mockAlerts[index], seen: true }
+    }
+  },
   getMarketSnapshot: (marketId: string): MarketSnapshot => {
     const snapshot = clone(ensureSnapshot(marketId))
     const relatedAlerts = mockAlerts.filter((alert) => alert.marketId === marketId)

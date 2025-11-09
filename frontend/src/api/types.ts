@@ -50,6 +50,11 @@ export interface PinMarketRequest {
   marketId: string  // Can be URL, slug, or numeric ID
 }
 
+export interface UnpinMarketRequest {
+  userId: string
+  marketId: string
+}
+
 export interface EventMarket {
   id: string
   question: string
