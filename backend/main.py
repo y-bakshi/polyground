@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
+import asyncio
+import logging
 
 # Import database initialization
 from database import init_db
@@ -9,7 +11,17 @@ from database import init_db
 # Import routes
 from routes import router as api_router
 
+# Import worker
+from services.worker import get_worker
+
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Polymarket Analytics API",
@@ -26,12 +38,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Background task reference
+background_tasks = set()
+
+
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database tables on application startup"""
+    """Initialize database tables and start background worker"""
     init_db()
     print("✓ Database initialized")
+
+    # Start the polling worker in the background
+    enable_worker = os.getenv("ENABLE_WORKER", "true").lower() == "true"
+
+    if enable_worker:
+        logger.info("Starting market polling worker...")
+        worker = get_worker()
+
+        # Create background task
+        task = asyncio.create_task(worker.start())
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
+
+        print("✓ Market polling worker started")
+    else:
+        print("⊗ Worker disabled (ENABLE_WORKER=false)")
 
 
 # Include API routes
